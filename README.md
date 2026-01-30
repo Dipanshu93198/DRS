@@ -1,4 +1,4 @@
-# 🚨 Disaster Management and Coordination System
+# 🚨 Disaster Response System
 
 ## 📌 Project Overview
 This project is developed as a college project to design a system that helps in
