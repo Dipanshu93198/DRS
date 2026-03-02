@@ -128,7 +128,7 @@ class Disaster(Base):
     num_casualties = Column(Integer, default=0)
     description = Column(String)
     source = Column(String)  # Source of report (USGS, citizen, official, etc)
-    metadata = Column(JSONColumnType, nullable=True)  # Additional info
+    extra_metadata = Column(JSONColumnType, nullable=True)
     reported_at = Column(DateTime, default=datetime.utcnow, index=True)
     validated_at = Column(DateTime, nullable=True)
     resolved_at = Column(DateTime, nullable=True)
@@ -236,3 +236,25 @@ class AlertBroadcast(Base):
     
     class Config:
         from_attributes = True
+class UserRole(str, enum.Enum):
+    ADMIN = "admin"
+    RESCUE = "rescue"
+    VOLUNTEER = "volunteer"
+    CITIZEN = "citizen"
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    email = Column(String, unique=True, index=True, nullable=False)
+    hashed_password = Column(String, nullable=False)
+    role = Column(Enum(UserRole), default=UserRole.CITIZEN, index=True)
+    is_active = Column(Integer, default=1)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    class Config:
+        from_attributes = True
+    
+ 

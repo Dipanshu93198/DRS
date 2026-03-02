@@ -1,6 +1,7 @@
 from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
+from app.routers import auth
 
 try:
     from app.config import settings
@@ -48,6 +49,7 @@ app.include_router(dispatch.router)
 app.include_router(disaster.router)
 app.include_router(ai.router)
 app.include_router(sos.router)
+app.include_router(auth.router)
 
 
 @app.get("/")
