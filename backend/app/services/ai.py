@@ -4,7 +4,7 @@ from app.config import settings
 import openai
 
 # Initialize OpenAI client
-client = openai.OpenAI(api_key=settings.OPENAI_API_KEY)
+client = openai.OpenAI(api_key=settings.openai_api_key)
 
 
 class PromptTemplate:
@@ -164,16 +164,16 @@ async def generate_ai_response(
     Returns:
         Al response text
     """
-    if not settings.OPENAI_API_KEY:
+    if not settings.openai_api_key:
         raise ValueError("OPENAI_API_KEY not configured")
     
-    system_role = system_role or settings.AI_SYSTEM_PROMPT
-    temperature = temperature if temperature is not None else settings.OPENAI_TEMPERATURE
-    max_tokens = max_tokens or settings.OPENAI_MAX_TOKENS
+    system_role = system_role or settings.ai_system_prompt
+    temperature = temperature if temperature is not None else settings.openai_temperature
+    max_tokens = max_tokens or settings.openai_max_tokens
     
     try:
         response = client.chat.completions.create(
-            model=settings.OPENAI_MODEL,
+            model=settings.openai_model,
             messages=[
                 {"role": "system", "content": system_role},
                 {"role": "user", "content": prompt}
@@ -288,17 +288,17 @@ class ConversationManager:
         """Get response in context of conversation"""
         self.add_user_message(user_message)
         
-        system_role = system_role or settings.AI_SYSTEM_PROMPT
+        system_role = system_role or settings.ai_system_prompt
         
         try:
             response = client.chat.completions.create(
-                model=settings.OPENAI_MODEL,
+                model=settings.openai_model,
                 messages=[
                     {"role": "system", "content": system_role},
                     *self.messages
                 ],
-                temperature=settings.OPENAI_TEMPERATURE,
-                max_tokens=settings.OPENAI_MAX_TOKENS
+                temperature=settings.openai_temperature,
+                max_tokens=settings.openai_max_tokens
             )
             
             assistant_message = response.choices[0].message.content

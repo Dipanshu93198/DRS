@@ -16,3 +16,5 @@ openai
 langchain
 pydantic-extra-types
 tenacity
+python-jose[cryptography]
+passlib[bcrypt]

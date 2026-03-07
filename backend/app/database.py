@@ -8,13 +8,13 @@ except ImportError:
     from config import settings
 
 # Create database engine with SQLite connect_args for check_same_thread
-if "sqlite" in settings.SQLALCHEMY_DATABASE_URL:
+if "sqlite" in settings.sqlalchemy_database_url:
     engine = create_engine(
-        settings.SQLALCHEMY_DATABASE_URL,
+        settings.sqlalchemy_database_url,
         connect_args={"check_same_thread": False}
     )
 else:
-    engine = create_engine(settings.SQLALCHEMY_DATABASE_URL)
+    engine = create_engine(settings.sqlalchemy_database_url)
 
 # Create session factory
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

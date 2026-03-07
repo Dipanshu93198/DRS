@@ -3,7 +3,10 @@
 ## 🧪 Complete Testing Strategy for AI Decision Assistant
 
 ### Prerequisites
-- Backend running: `python -m uvicorn app.main:app --reload --port 8000`
+- Backend running: `python -m uvicorn app.main:app --reload --port 8000` (use `--host 0.0.0.0` inside containers)
+- **Port 8000 must be accessible from your browser.**  
+  In Codespaces/DevContainer forward it via the Ports panel or run `python3 start-all.py`,
+  which will start both servers and handle forwarding for you.
 - OpenAI API key configured in `.env`
 - Frontend running: `npm run dev` on port 8080
 

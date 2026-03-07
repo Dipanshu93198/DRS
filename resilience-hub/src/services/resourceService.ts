@@ -1,4 +1,6 @@
-const API_BASE_URL = 'http://localhost:8000';
+import { getApiBase } from '../lib/apiBase';
+
+const API_BASE_URL = getApiBase();
 
 export interface Resource {
   id: number;

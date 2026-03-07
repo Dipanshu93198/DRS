@@ -1,33 +1,43 @@
 import os
 from pydantic_settings import BaseSettings
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 
 class Settings(BaseSettings):
     """Application settings"""
     
-    # Use SQLite for demo/dev, PostgreSQL for production
-    USE_POSTGRES: bool = os.getenv("USE_POSTGRES", "false").lower() == "true"
+    # Database Configuration
+    use_postgres: bool = os.getenv("use_postgres", "false").lower() == "true"
+    database_url: str = os.getenv("database_url", "sqlite:///./resilience_hub.db")
+    sqlalchemy_database_url: str = os.getenv("sqlalchemy_database_url", "sqlite:///./resilience_hub.db")
     
-    DATABASE_URL: str = os.getenv(
-        "DATABASE_URL",
-        "sqlite:///./resilience_hub.db" if not USE_POSTGRES else "postgresql://postgres:postgres@localhost/resilience_hub"
-    )
-    SQLALCHEMY_DATABASE_URL: str = os.getenv(
-        "SQLALCHEMY_DATABASE_URL",
-        "sqlite:///./resilience_hub.db" if not USE_POSTGRES else "postgresql+psycopg2://postgres:postgres@localhost/resilience_hub"
-    )
-    API_TITLE: str = "Disaster Response and Coordination System"
-    API_VERSION: str = "1.0.0"
-    API_DESCRIPTION: str = "Real-time disaster response, resource tracking and coordination system"
+    # API Configuration
+    api_title: str = "Disaster Response and Coordination System"
+    api_version: str = "1.0.0"
+    api_description: str = "Real-time disaster response, resource tracking and coordination system"
+    
+    # CORS Configuration
+    cors_origins: str = '["http://localhost:8080", "http://localhost:3000", "http://localhost:5173"]'
+    
+    # Server Configuration
+    server_host: str = "0.0.0.0"
+    server_port: int = 8000
     
     # OpenAI Configuration
-    OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
-    OPENAI_MODEL: str = os.getenv("OPENAI_MODEL", "gpt-4")
-    OPENAI_TEMPERATURE: float = float(os.getenv("OPENAI_TEMPERATURE", "0.7"))
-    OPENAI_MAX_TOKENS: int = int(os.getenv("OPENAI_MAX_TOKENS", "2000"))
+    openai_api_key: str = os.getenv("openai_api_key", "")
+    openai_model: str = "gpt-4"
+    openai_temperature: float = 0.7
+    openai_max_tokens: int = 2000
+    
+    # External API Keys
+    openweather_api_key: str = os.getenv("openweather_api_key", "")
+    nasa_firms_api_key: str = os.getenv("nasa_firms_api_key", "")
     
     # AI Configuration
-    AI_SYSTEM_PROMPT: str = """You are an AI Emergency Response Assistant for disaster management. 
+    ai_system_prompt: str = """You are an AI Emergency Response Assistant for disaster management. 
     You help emergency responders and civilians by:
     1. Explaining disasters and their immediate impacts
     2. Recommending safe actions for civilians
@@ -38,6 +48,7 @@ class Settings(BaseSettings):
     
     class Config:
         env_file = ".env"
+        env_file_encoding = "utf-8"
 
 
 settings = Settings()

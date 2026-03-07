@@ -170,3 +170,29 @@ def get_disaster_statistics(
         "validation_rate": round((validated / total * 100) if total > 0 else 0, 2),
         "by_type": type_counts
     }
+
+
+# Import the new services
+try:
+    from app.services.disaster_apis import get_all_disaster_alerts
+except ImportError:
+    from services.disaster_apis import get_all_disaster_alerts
+
+
+@router.get("/alerts/{lat}/{lon}")
+def get_disaster_alerts(
+    lat: float,
+    lon: float
+):
+    """
+    Get real-time disaster alerts from integrated APIs (weather, floods, wildfires)
+    """
+    try:
+        alerts = get_all_disaster_alerts(lat, lon)
+        return {
+            "alerts": alerts,
+            "location": f"{lat:.4f}, {lon:.4f}",
+            "timestamp": datetime.utcnow().isoformat()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Alerts error: {str(e)}")

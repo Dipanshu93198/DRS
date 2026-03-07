@@ -1,15 +1,19 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Radio, Shield, RefreshCw, Wifi, WifiOff } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Props {
   wsConnected: boolean;
   usgsLoading: boolean;
+  alertsLoading: boolean;
   lastRefresh: Date;
   onRefresh: () => void;
+  onRefreshAlerts: () => void;
 }
 
-export default function Header({ wsConnected, usgsLoading, lastRefresh, onRefresh }: Props) {
+export default function Header({ wsConnected, usgsLoading, alertsLoading, lastRefresh, onRefresh, onRefreshAlerts }: Props) {
   const [time, setTime] = useState(new Date());
 
   useEffect(() => {
@@ -60,6 +64,16 @@ export default function Header({ wsConnected, usgsLoading, lastRefresh, onRefres
           USGS {usgsLoading ? 'Loading...' : `Updated ${lastRefresh.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
         </button>
 
+        {/* Alerts refresh */}
+        <button
+          onClick={onRefreshAlerts}
+          disabled={alertsLoading}
+          className="flex items-center gap-1.5 text-[10px] font-mono text-muted-foreground hover:text-primary transition-colors disabled:opacity-50"
+        >
+          <RefreshCw className={`w-3 h-3 ${alertsLoading ? 'animate-spin' : ''}`} />
+          Alerts {alertsLoading ? 'Loading...' : 'Refresh'}
+        </button>
+
         {/* System status */}
         <div className="flex items-center gap-2">
           <Radio className="w-3 h-3 text-success animate-pulse" />
@@ -70,7 +84,38 @@ export default function Header({ wsConnected, usgsLoading, lastRefresh, onRefres
         <div className="font-mono text-xs text-muted-foreground tabular-nums">
           {time.toUTCString().slice(0, -4)} UTC
         </div>
+
+        {/* auth button */}
+        <AuthControls />
       </div>
     </motion.header>
   );
+}
+
+function AuthControls() {
+  const { token, logout } = useAuth();
+  const navigate = useNavigate();
+
+  if (token) {
+    return (
+      <button
+        onClick={() => {
+          logout();
+          navigate('/login');
+        }}
+        className="text-[10px] font-mono text-muted-foreground hover:text-primary transition-colors"
+      >
+        Logout
+      </button>
+    );
+  } else {
+    return (
+      <button
+        onClick={() => navigate('/login')}
+        className="text-[10px] font-mono text-muted-foreground hover:text-primary transition-colors"
+      >
+        Login
+      </button>
+    );
+  }
 }

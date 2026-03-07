@@ -10,9 +10,9 @@ except ImportError:
     from config import settings
 
 # Only import Geometry if using PostgreSQL
-USE_GEOMETRY = "sqlite" not in settings.SQLALCHEMY_DATABASE_URL
+USE_GEOMETRY = "sqlite" not in settings.sqlalchemy_database_url
 
-if "postgresql" in settings.SQLALCHEMY_DATABASE_URL:
+if "postgresql" in settings.sqlalchemy_database_url:
     from geoalchemy2 import Geometry
     HAS_GEOMETRY = True
 else:
@@ -20,7 +20,7 @@ else:
     Geometry = None
 
 # Use JSON for SQLite, JSONB for PostgreSQL
-JSONColumnType = JSON if "sqlite" in settings.SQLALCHEMY_DATABASE_URL else JSON
+JSONColumnType = JSON if "sqlite" in settings.sqlalchemy_database_url else JSON
 
 
 class ResourceType(str, enum.Enum):
@@ -241,6 +241,14 @@ class UserRole(str, enum.Enum):
     RESCUE = "rescue"
     VOLUNTEER = "volunteer"
     CITIZEN = "citizen"
+    # Multi-agency roles
+    POLICE = "police"
+    FIRE_DEPARTMENT = "fire_department"
+    MEDICAL = "medical"
+    MILITARY = "military"
+    NGO = "ngo"
+    GOVERNMENT = "government"
+    UTILITY_COMPANY = "utility_company"
 class User(Base):
     __tablename__ = "users"
 
@@ -253,6 +261,179 @@ class User(Base):
 
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    class Config:
+        from_attributes = True
+
+
+class Shelter(Base):
+    """Emergency shelter locations with capacity management"""
+
+    __tablename__ = "shelters"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, index=True)
+    address = Column(String)
+    latitude = Column(Float, index=True)
+    longitude = Column(Float, index=True)
+    geom = Column(Geometry("POINT", srid=4326), index=True) if HAS_GEOMETRY else None
+
+    # Capacity management
+    max_capacity = Column(Integer, default=100)
+    current_occupancy = Column(Integer, default=0)
+    available_capacity = Column(Integer, default=100)  # Computed field
+
+    # Shelter details
+    shelter_type = Column(String)  # evacuation_center, medical_facility, school, etc.
+    facilities = Column(JSONColumnType, nullable=True)  # beds, food, medical, etc.
+    contact_phone = Column(String, nullable=True)
+    contact_email = Column(String, nullable=True)
+
+    # Status
+    is_active = Column(Integer, default=1)
+    operational_status = Column(String, default="open")  # open, closed, full, damaged
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    class Config:
+        from_attributes = True
+
+
+class Hospital(Base):
+    """Medical facility locations"""
+
+    __tablename__ = "hospitals"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, index=True)
+    address = Column(String)
+    latitude = Column(Float, index=True)
+    longitude = Column(Float, index=True)
+    geom = Column(Geometry("POINT", srid=4326), index=True) if HAS_GEOMETRY else None
+
+    # Hospital details
+    hospital_type = Column(String)  # general, trauma, pediatric, etc.
+    bed_capacity = Column(Integer, default=50)
+    available_beds = Column(Integer, default=50)
+    emergency_services = Column(Integer, default=1)  # Has emergency department
+    specialties = Column(JSONColumnType, nullable=True)  # List of medical specialties
+
+    # Contact
+    contact_phone = Column(String, nullable=True)
+    contact_email = Column(String, nullable=True)
+
+    # Status
+    is_active = Column(Integer, default=1)
+    operational_status = Column(String, default="open")  # open, closed, overwhelmed
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    class Config:
+        from_attributes = True
+
+
+class EvacuationRoute(Base):
+    """Pre-planned evacuation routes"""
+
+    __tablename__ = "evacuation_routes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, index=True)
+    description = Column(String)
+
+    # Route geometry - LINESTRING for paths
+    geom = Column(Geometry("LINESTRING", srid=4326), index=True) if HAS_GEOMETRY else None
+
+    # Route details
+    route_type = Column(String)  # primary, secondary, emergency
+    priority_level = Column(Integer, default=1)  # 1=high, 2=medium, 3=low
+    estimated_duration_minutes = Column(Integer, nullable=True)
+    max_capacity_per_hour = Column(Integer, nullable=True)  # People per hour
+
+    # Associated areas
+    start_point_lat = Column(Float)
+    start_point_lon = Column(Float)
+    end_point_lat = Column(Float)
+    end_point_lon = Column(Float)
+
+    # Status
+    is_active = Column(Integer, default=1)
+    congestion_level = Column(String, default="low")  # low, medium, high, blocked
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    class Config:
+        from_attributes = True
+
+
+class DisasterZone(Base):
+    """Defined disaster risk zones"""
+
+    __tablename__ = "disaster_zones"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, index=True)
+    zone_type = Column(String)  # flood_zone, earthquake_zone, wildfire_zone, etc.
+
+    # Zone geometry - POLYGON for areas
+    geom = Column(Geometry("POLYGON", srid=4326), index=True) if HAS_GEOMETRY else None
+
+    # Risk assessment
+    risk_level = Column(String, default="low")  # low, medium, high, critical
+    population_density = Column(String, default="low")  # low, medium, high
+    vulnerability_score = Column(Float, default=0.0)  # 0-100
+
+    # Zone details
+    area_sq_km = Column(Float, nullable=True)
+    estimated_population = Column(Integer, nullable=True)
+    infrastructure_risk = Column(JSONColumnType, nullable=True)  # Critical infrastructure in zone
+
+    # Emergency planning
+    evacuation_priority = Column(Integer, default=1)  # 1=highest priority
+    nearest_shelters = Column(JSONColumnType, nullable=True)  # List of shelter IDs
+    emergency_contacts = Column(JSONColumnType, nullable=True)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    class Config:
+        from_attributes = True
+
+
+class OperationalLog(Base):
+    """System operational logs for audit and monitoring"""
+
+    __tablename__ = "operational_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    timestamp = Column(DateTime, default=datetime.utcnow, index=True)
+
+    # Log details
+    level = Column(String, index=True)  # INFO, WARNING, ERROR, CRITICAL
+    category = Column(String, index=True)  # disaster, resource, sos, system, user
+    event_type = Column(String, index=True)  # alert_triggered, resource_dispatched, sos_resolved, etc.
+
+    # Event data
+    message = Column(String)
+    details = Column(JSONColumnType, nullable=True)  # Structured event data
+
+    # Context
+    user_id = Column(Integer, nullable=True)  # Who triggered the event
+    entity_id = Column(Integer, nullable=True)  # Related entity (disaster_id, resource_id, etc.)
+    entity_type = Column(String, nullable=True)  # disaster, resource, sos, etc.
+
+    # Location (if applicable)
+    latitude = Column(Float, nullable=True)
+    longitude = Column(Float, nullable=True)
+
+    # System info
+    source = Column(String, default="system")  # system, api, websocket, etc.
+    ip_address = Column(String, nullable=True)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
 
     class Config:
         from_attributes = True

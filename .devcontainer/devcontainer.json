@@ -1,0 +1,28 @@
+{
+  "name": "Disaster Response System",
+  "image": "mcr.microsoft.com/devcontainers/universal:latest",
+  "features": {
+    "ghcr.io/devcontainers/features/python:1": {},
+    "ghcr.io/devcontainers/features/node:1": {}
+  },
+  "forwardPorts": [8000, 8080, 5173],
+  "portsAttributes": {
+    "8000": {
+      "label": "Backend API",
+      "onAutoForward": "notify",
+      "requireLocalPort": false
+    },
+    "8080": {
+      "label": "Frontend",
+      "onAutoForward": "notify",
+      "requireLocalPort": false
+    },
+    "5173": {
+      "label": "Vite Dev",
+      "onAutoForward": "notify",
+      "requireLocalPort": false
+    }
+  },
+  "postCreateCommand": "echo 'Dev container ready' && cd /workspaces/DRS && ls -la",
+  "remoteUser": "codespace"
+}

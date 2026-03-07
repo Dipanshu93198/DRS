@@ -1,73 +1,121 @@
-# Welcome to your Lovable project
+# Disaster Response System (DRS) - Resilience Hub
 
-## Project info
+A comprehensive disaster response and emergency management platform built with modern web technologies.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## Overview
 
-## How can I edit this code?
+The Resilience Hub is the frontend component of the Disaster Response System, providing a user-friendly interface for emergency coordination, resource management, and real-time communication during disaster events.
 
-There are several ways of editing your application.
+## Features
 
-**Use Lovable**
+- **Real-time Emergency Alerts**: Live monitoring and notification system
+- **Resource Coordination**: Track and manage emergency resources (ambulances, drones, rescue teams)
+- **Citizen SOS System**: Direct communication channel for citizens in distress
+- **AI Decision Assistant**: Intelligent recommendations for emergency response
+- **Interactive Maps**: Real-time visualization of disaster zones and resources
+- **Multi-role Access**: Support for citizens, volunteers, and officials
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+## Tech Stack
 
-Changes made via Lovable will be committed automatically to this repo.
+- **Frontend**: React 18 with TypeScript
+- **Build Tool**: Vite
+- **Styling**: Tailwind CSS with shadcn/ui components
+- **State Management**: React hooks and context
+- **Real-time Communication**: WebSockets
+- **Maps**: Interactive mapping components
+- **Testing**: Vitest
 
-**Use your preferred IDE**
+## Getting Started
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### Prerequisites
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+- Node.js 18+ and npm
+- Backend API server running (see backend README)
 
-Follow these steps:
+### Installation
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+1. Clone the repository:
+```bash
+git clone <repository-url>
+cd resilience-hub
+```
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+2. Install dependencies:
+```bash
+npm install
+```
 
-# Step 3: Install the necessary dependencies.
-npm i
+3. Configure environment variables:
+```bash
+cp .env.example .env
+# Edit .env with your configuration
+```
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+4. **Important:** make sure the backend URL is reachable from the browser.  
+   In a local setup the default `VITE_API_BASE` points to `http://localhost:8000`.  
+   In GitHub Codespaces the easiest approach is to run the helper script from the
+   repository root:
+   ```bash
+   python3 ../start-all.py
+   ```
+   which will start both servers and forward the backend port for you.  
+   Alternatively forward port 8000 manually in the Ports panel or set
+   `VITE_API_BASE` to the appropriate preview URL (e.g. `https://<your>-8000.githubpreview.dev`).
+
+5. Start the development server:
+```bash
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+The application will be available at `http://localhost:5173` (or the forwarded preview URL).
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### Build for Production
 
-**Use GitHub Codespaces**
+```bash
+npm run build
+npm run preview
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## Project Structure
 
-## What technologies are used for this project?
+```
+src/
+├── components/          # Reusable UI components
+│   ├── ui/             # shadcn/ui components
+│   ├── dashboard/      # Dashboard-specific components
+│   └── ...
+├── pages/              # Page components
+├── services/           # API service functions
+├── hooks/              # Custom React hooks
+├── lib/                # Utility functions
+└── types/              # TypeScript type definitions
+```
 
-This project is built with:
+## Available Scripts
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run preview` - Preview production build
+- `npm run test` - Run tests
+- `npm run lint` - Run ESLint
 
-## How can I deploy this project?
+## Environment Variables
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+Create a `.env` file with the following variables:
 
-## Can I connect a custom domain to my Lovable project?
+```env
+VITE_API_BASE=http://localhost:8000
+VITE_MAP_API_KEY=your_map_api_key
+```
 
-Yes, you can!
+## Contributing
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+## License
+
+This project is part of the Disaster Response System and is licensed under the MIT License.

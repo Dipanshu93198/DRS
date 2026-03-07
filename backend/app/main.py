@@ -6,7 +6,7 @@ from app.routers import auth
 try:
     from app.config import settings
     from app.database import init_db
-    from app.routers import resources, dispatch, ai, sos, disaster
+    from app.routers import resources, dispatch, ai, sos, disaster, infrastructure, simulation, logging
     from app.websockets.manager import handle_websocket
 except ImportError:
     from config import settings
@@ -28,9 +28,9 @@ async def lifespan(app: FastAPI):
 
 # Create FastAPI app
 app = FastAPI(
-    title=settings.API_TITLE,
-    description=settings.API_DESCRIPTION,
-    version=settings.API_VERSION,
+    title=settings.api_title,
+    description=settings.api_description,
+    version=settings.api_version,
     lifespan=lifespan
 )
 
@@ -50,6 +50,9 @@ app.include_router(disaster.router)
 app.include_router(ai.router)
 app.include_router(sos.router)
 app.include_router(auth.router)
+app.include_router(infrastructure.router)
+app.include_router(simulation.router)
+app.include_router(logging.router)
 
 
 @app.get("/")
@@ -57,7 +60,7 @@ def root():
     """Root endpoint"""
     return {
         "message": "Disaster Response and Coordination System",
-        "version": settings.API_VERSION,
+        "version": settings.api_version,
         "docs": "/docs",
         "api_url": "http://localhost:8000"
     }

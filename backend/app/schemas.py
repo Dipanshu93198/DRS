@@ -448,6 +448,185 @@ class SOSAnalytics(BaseModel):
     total_resolved_today: int
     average_response_time_minutes: float
     most_common_emergency_type: str
+
+
+# Geospatial Infrastructure Schemas
+
+class ShelterCreate(BaseModel):
+    """Create a new shelter"""
+    name: str = Field(..., min_length=1, max_length=100)
+    address: str
+    latitude: float = Field(..., ge=-90, le=90)
+    longitude: float = Field(..., ge=-180, le=180)
+    max_capacity: int = Field(..., gt=0)
+    shelter_type: str
+    facilities: Optional[Dict[str, Any]] = None
+    contact_phone: Optional[str] = None
+    contact_email: Optional[str] = None
+
+class ShelterResponse(BaseModel):
+    """Shelter response"""
+    id: int
+    name: str
+    address: str
+    latitude: float
+    longitude: float
+    max_capacity: int
+    current_occupancy: int
+    available_capacity: int
+    shelter_type: str
+    facilities: Optional[Dict[str, Any]] = None
+    contact_phone: Optional[str] = None
+    contact_email: Optional[str] = None
+    is_active: bool
+    operational_status: str
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class HospitalCreate(BaseModel):
+    """Create a new hospital"""
+    name: str = Field(..., min_length=1, max_length=100)
+    address: str
+    latitude: float = Field(..., ge=-90, le=90)
+    longitude: float = Field(..., ge=-180, le=180)
+    bed_capacity: int = Field(..., gt=0)
+    hospital_type: str
+    emergency_services: bool = True
+    specialties: Optional[list[str]] = None
+    contact_phone: Optional[str] = None
+    contact_email: Optional[str] = None
+
+class HospitalResponse(BaseModel):
+    """Hospital response"""
+    id: int
+    name: str
+    address: str
+    latitude: float
+    longitude: float
+    bed_capacity: int
+    available_beds: int
+    hospital_type: str
+    emergency_services: bool
+    specialties: Optional[list[str]] = None
+    contact_phone: Optional[str] = None
+    contact_email: Optional[str] = None
+    is_active: bool
+    operational_status: str
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class EvacuationRouteCreate(BaseModel):
+    """Create a new evacuation route"""
+    name: str = Field(..., min_length=1, max_length=100)
+    description: str
+    route_type: str
+    priority_level: int = Field(..., ge=1, le=3)
+    estimated_duration_minutes: Optional[int] = None
+    max_capacity_per_hour: Optional[int] = None
+    start_point_lat: float = Field(..., ge=-90, le=90)
+    start_point_lon: float = Field(..., ge=-180, le=180)
+    end_point_lat: float = Field(..., ge=-90, le=90)
+    end_point_lon: float = Field(..., ge=-180, le=180)
+
+class EvacuationRouteResponse(BaseModel):
+    """Evacuation route response"""
+    id: int
+    name: str
+    description: str
+    route_type: str
+    priority_level: int
+    estimated_duration_minutes: Optional[int] = None
+    max_capacity_per_hour: Optional[int] = None
+    start_point_lat: float
+    start_point_lon: float
+    end_point_lat: float
+    end_point_lon: float
+    is_active: bool
+    congestion_level: str
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class DisasterZoneCreate(BaseModel):
+    """Create a new disaster zone"""
+    name: str = Field(..., min_length=1, max_length=100)
+    zone_type: str
+    risk_level: str
+    population_density: str
+    vulnerability_score: float = Field(..., ge=0, le=100)
+    area_sq_km: Optional[float] = None
+    estimated_population: Optional[int] = None
+    infrastructure_risk: Optional[Dict[str, Any]] = None
+    evacuation_priority: int = Field(..., ge=1, le=5)
+    nearest_shelters: Optional[list[int]] = None
+    emergency_contacts: Optional[Dict[str, Any]] = None
+
+class DisasterZoneResponse(BaseModel):
+    """Disaster zone response"""
+    id: int
+    name: str
+    zone_type: str
+    risk_level: str
+    population_density: str
+    vulnerability_score: float
+    area_sq_km: Optional[float] = None
+    estimated_population: Optional[int] = None
+    infrastructure_risk: Optional[Dict[str, Any]] = None
+    evacuation_priority: int
+    nearest_shelters: Optional[list[int]] = None
+    emergency_contacts: Optional[Dict[str, Any]] = None
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class OperationalLogCreate(BaseModel):
+    """Create an operational log entry"""
+    level: str = Field(..., pattern="^(INFO|WARNING|ERROR|CRITICAL)$")
+    category: str
+    event_type: str
+    message: str
+    details: Optional[Dict[str, Any]] = None
+    user_id: Optional[int] = None
+    entity_id: Optional[int] = None
+    entity_type: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    source: str = "system"
+    ip_address: Optional[str] = None
+
+class OperationalLogResponse(BaseModel):
+    """Operational log response"""
+    id: int
+    timestamp: datetime
+    level: str
+    category: str
+    event_type: str
+    message: str
+    details: Optional[Dict[str, Any]] = None
+    user_id: Optional[int] = None
+    entity_id: Optional[int] = None
+    entity_type: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    source: str
+    ip_address: Optional[str] = None
+
+    class Config:
+        from_attributes = True
     urgent_cases: int
     crowd_assistance_available: int
     nearby_resources_count: int

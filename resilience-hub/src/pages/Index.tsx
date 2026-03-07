@@ -5,6 +5,7 @@ import AlertFeed from "@/components/dashboard/AlertFeed";
 import DisasterList from "@/components/dashboard/DisasterList";
 import DisasterDetail from "@/components/dashboard/DisasterDetail";
 import { useDisasterData } from "@/hooks/useDisasterData";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function Index() {
   const {
@@ -16,17 +17,33 @@ export default function Index() {
     stats,
     wsConnected,
     usgsLoading,
+    alertsLoading,
     lastRefresh,
     refreshUSGS,
+    refreshAlerts,
   } = useDisasterData();
+
+  const { token } = useAuth();
+
+  // If user is not logged in, show a message or redirect.
+  // We'll just show a simple prompt
+  if (!token) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <p className="text-lg">Please <a href="/login" className="text-primary underline">login</a> to access the dashboard.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="h-screen flex flex-col bg-background grid-bg overflow-hidden">
       <Header
         wsConnected={wsConnected}
         usgsLoading={usgsLoading}
+        alertsLoading={alertsLoading}
         lastRefresh={lastRefresh}
         onRefresh={refreshUSGS}
+        onRefreshAlerts={refreshAlerts}
       />
       <div className="flex-1 flex flex-col p-4 gap-4 overflow-hidden">
         <StatsBar stats={stats} />
