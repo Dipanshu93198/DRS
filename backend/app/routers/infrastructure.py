@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 from datetime import datetime
+from app.auth import require_mission_roles
 
 try:
     from app.database import get_db
@@ -28,7 +29,8 @@ router = APIRouter(prefix="/infrastructure", tags=["infrastructure"])
 @router.post("/shelters", response_model=ShelterResponse)
 def create_shelter(
     request: ShelterCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _mission: str = Depends(require_mission_roles("admin", "field"))
 ):
     """Create a new emergency shelter"""
     try:
@@ -56,7 +58,8 @@ def create_shelter(
 @router.get("/shelters", response_model=List[ShelterResponse])
 def list_shelters(
     active_only: bool = True,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _mission: str = Depends(require_mission_roles("admin", "field", "analyst"))
 ):
     """List all shelters"""
     query = db.query(Shelter)
@@ -67,7 +70,8 @@ def list_shelters(
 @router.get("/shelters/{shelter_id}", response_model=ShelterResponse)
 def get_shelter(
     shelter_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _mission: str = Depends(require_mission_roles("admin", "field", "analyst"))
 ):
     """Get a specific shelter"""
     shelter = db.query(Shelter).filter(Shelter.id == shelter_id).first()
@@ -79,7 +83,8 @@ def get_shelter(
 def update_shelter_occupancy(
     shelter_id: int,
     current_occupancy: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _mission: str = Depends(require_mission_roles("admin", "field"))
 ):
     """Update shelter occupancy"""
     shelter = db.query(Shelter).filter(Shelter.id == shelter_id).first()
@@ -101,7 +106,8 @@ def update_shelter_occupancy(
 @router.post("/hospitals", response_model=HospitalResponse)
 def create_hospital(
     request: HospitalCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _mission: str = Depends(require_mission_roles("admin", "field"))
 ):
     """Create a new hospital"""
     try:
@@ -130,7 +136,8 @@ def create_hospital(
 @router.get("/hospitals", response_model=List[HospitalResponse])
 def list_hospitals(
     active_only: bool = True,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _mission: str = Depends(require_mission_roles("admin", "field", "analyst"))
 ):
     """List all hospitals"""
     query = db.query(Hospital)
@@ -142,7 +149,8 @@ def list_hospitals(
 @router.post("/routes", response_model=EvacuationRouteResponse)
 def create_evacuation_route(
     request: EvacuationRouteCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _mission: str = Depends(require_mission_roles("admin", "field"))
 ):
     """Create a new evacuation route"""
     try:
@@ -170,7 +178,8 @@ def create_evacuation_route(
 @router.get("/routes", response_model=List[EvacuationRouteResponse])
 def list_evacuation_routes(
     active_only: bool = True,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _mission: str = Depends(require_mission_roles("admin", "field", "analyst"))
 ):
     """List all evacuation routes"""
     query = db.query(EvacuationRoute)
@@ -182,7 +191,8 @@ def list_evacuation_routes(
 @router.post("/zones", response_model=DisasterZoneResponse)
 def create_disaster_zone(
     request: DisasterZoneCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _mission: str = Depends(require_mission_roles("admin", "field"))
 ):
     """Create a new disaster zone"""
     try:
@@ -210,7 +220,8 @@ def create_disaster_zone(
 
 @router.get("/zones", response_model=List[DisasterZoneResponse])
 def list_disaster_zones(
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _mission: str = Depends(require_mission_roles("admin", "field", "analyst"))
 ):
     """List all disaster zones"""
     return db.query(DisasterZone).all()

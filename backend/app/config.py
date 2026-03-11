@@ -6,13 +6,23 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
+def _env(primary: str, default: str = "", *aliases: str) -> str:
+    """Read env var by primary key, then fall back to aliases."""
+    keys = (primary, *aliases)
+    for key in keys:
+        value = os.getenv(key)
+        if value is not None:
+            return value
+    return default
+
+
 class Settings(BaseSettings):
     """Application settings"""
     
     # Database Configuration
-    use_postgres: bool = os.getenv("use_postgres", "false").lower() == "true"
-    database_url: str = os.getenv("database_url", "sqlite:///./resilience_hub.db")
-    sqlalchemy_database_url: str = os.getenv("sqlalchemy_database_url", "sqlite:///./resilience_hub.db")
+    use_postgres: bool = _env("use_postgres", "false", "USE_POSTGRES").lower() == "true"
+    database_url: str = _env("database_url", "sqlite:///./resilience_hub.db", "DATABASE_URL")
+    sqlalchemy_database_url: str = _env("sqlalchemy_database_url", "sqlite:///./resilience_hub.db", "SQLALCHEMY_DATABASE_URL")
     
     # API Configuration
     api_title: str = "Disaster Response and Coordination System"
@@ -27,14 +37,48 @@ class Settings(BaseSettings):
     server_port: int = 8000
     
     # OpenAI Configuration
-    openai_api_key: str = os.getenv("openai_api_key", "")
+    openai_api_key: str = _env("openai_api_key", "", "OPENAI_API_KEY")
     openai_model: str = "gpt-4"
     openai_temperature: float = 0.7
     openai_max_tokens: int = 2000
     
     # External API Keys
-    openweather_api_key: str = os.getenv("openweather_api_key", "")
-    nasa_firms_api_key: str = os.getenv("nasa_firms_api_key", "")
+    openweather_api_key: str = _env("openweather_api_key", "", "OPENWEATHER_API_KEY")
+    nasa_firms_api_key: str = _env("nasa_firms_api_key", "", "NASA_FIRMS_API_KEY")
+    nasa_api_key: str = _env("nasa_api_key", "", "NASA_API_KEY")
+    data_gov_in_api_key: str = _env("data_gov_in_api_key", "", "DATA_GOV_IN_API_KEY")
+    data_gov_in_resource_id: str = _env("data_gov_in_resource_id", "", "DATA_GOV_IN_RESOURCE_ID")
+    noaa_api_token: str = _env("noaa_api_token", "", "NOAA_API_TOKEN")
+    noaa_dataset_id: str = _env("noaa_dataset_id", "", "NOAA_DATASET_ID")
+    noaa_location_id: str = _env("noaa_location_id", "", "NOAA_LOCATION_ID")
+    imd_api_key: str = _env("imd_api_key", "", "IMD_API_KEY")
+    ndma_api_key: str = _env("ndma_api_key", "", "NDMA_API_KEY")
+    sms_provider: str = _env("sms_provider", "mock", "SMS_PROVIDER")
+    twilio_account_sid: str = _env("twilio_account_sid", "", "TWILIO_ACCOUNT_SID")
+    twilio_auth_token: str = _env("twilio_auth_token", "", "TWILIO_AUTH_TOKEN")
+    twilio_from_number: str = _env("twilio_from_number", "", "TWILIO_FROM_NUMBER")
+    weather_gov_user_agent: str = _env("weather_gov_user_agent", "drs-resilience-hub/1.0", "WEATHER_GOV_USER_AGENT")
+    usgs_geojson_feed_url: str = _env(
+        "usgs_geojson_feed_url",
+        "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson",
+        "USGS_GEOJSON_FEED_URL",
+    )
+    openfema_disaster_feed_url: str = _env(
+        "openfema_disaster_feed_url",
+        "https://www.fema.gov/api/open/v2/DisasterDeclarationsSummaries?$top=50",
+        "OPENFEMA_DISASTER_FEED_URL",
+    )
+    sachet_ndma_feed_url: str = _env(
+        "sachet_ndma_feed_url",
+        "https://sachet.ndma.gov.in/",
+        "SACHET_NDMA_FEED_URL",
+    )
+    nasa_eonet_feed_url: str = _env(
+        "nasa_eonet_feed_url",
+        "https://eonet.gsfc.nasa.gov/api/v3/events?status=open&limit=50",
+        "NASA_EONET_FEED_URL",
+    )
+    google_client_id: str = _env("google_client_id", "", "GOOGLE_CLIENT_ID")
     
     # AI Configuration
     ai_system_prompt: str = """You are an AI Emergency Response Assistant for disaster management. 

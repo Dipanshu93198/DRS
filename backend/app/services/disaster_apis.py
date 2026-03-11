@@ -96,29 +96,16 @@ class FloodService:
         Get flood alerts for a location
         Note: Using simulated data - replace with real API
         """
-        # Mock flood data - replace with real API like NOAA or local services
-        alerts = []
-
-        # Simulate occasional flood alerts
-        import random
-        if random.random() < 0.1:  # 10% chance for demo
-            alerts.append({
-                "type": "flood",
-                "severity": "high",
-                "description": "Flash flood warning in area",
-                "location": f"{lat:.4f}, {lon:.4f}",
-                "timestamp": datetime.utcnow().isoformat(),
-                "source": "Flood Monitoring Service"
-            })
-
-        return alerts
+        # Keep deterministic and avoid synthetic random alerts.
+        # Integrate a real flood source here when key/endpoints are available.
+        return []
 
 class WildfireService:
     """Service for wildfire monitoring"""
 
     def __init__(self):
-        # NASA FIRMS API would go here
-        self.api_key = os.getenv("NASA_FIRMS_API_KEY", "")
+        from app.config import settings
+        self.api_key = settings.nasa_firms_api_key
 
     def get_wildfire_alerts(self, lat: float, lon: float, radius_km: int = 100) -> List[Dict]:
         """
@@ -129,22 +116,9 @@ class WildfireService:
             logger.warning("NASA FIRMS API key not configured")
             return []
 
-        # Mock implementation - replace with real NASA FIRMS API
-        alerts = []
-
-        # Simulate occasional wildfire alerts
-        import random
-        if random.random() < 0.05:  # 5% chance for demo
-            alerts.append({
-                "type": "wildfire",
-                "severity": "critical",
-                "description": "Active wildfire detected in vicinity",
-                "location": f"{lat:.4f}, {lon:.4f}",
-                "timestamp": datetime.utcnow().isoformat(),
-                "source": "NASA FIRMS"
-            })
-
-        return alerts
+        # Placeholder for FIRMS query implementation.
+        # Return empty until key + query endpoint mapping are configured.
+        return []
 
 # Global instances
 weather_service = WeatherService()

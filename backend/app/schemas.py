@@ -630,3 +630,53 @@ class OperationalLogResponse(BaseModel):
     urgent_cases: int
     crowd_assistance_available: int
     nearby_resources_count: int
+
+
+class IncidentAssignmentUpsert(BaseModel):
+    disaster_key: str
+    owner: str
+    status: str
+    eta_minutes: int = Field(..., ge=0, le=10000)
+    sla_minutes: int = Field(..., ge=1, le=10000)
+    notes: Optional[str] = None
+
+
+class IncidentAssignmentResponse(BaseModel):
+    id: int
+    disaster_key: str
+    owner: str
+    status: str
+    eta_minutes: int
+    sla_minutes: int
+    notes: Optional[str] = None
+    updated_by_user_id: Optional[int] = None
+    updated_by_name: Optional[str] = None
+    last_updated: datetime
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class AuditEventCreate(BaseModel):
+    action: str
+    target: str
+    severity: str = Field(default="info", pattern="^(info|warning|critical)$")
+    details: Optional[str] = None
+    event_metadata: Optional[Dict[str, Any]] = None
+
+
+class AuditEventResponse(BaseModel):
+    id: int
+    actor_name: str
+    actor_user_id: Optional[int] = None
+    mission_role: str
+    action: str
+    target: str
+    severity: str
+    details: Optional[str] = None
+    event_metadata: Optional[Dict[str, Any]] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True

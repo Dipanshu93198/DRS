@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from datetime import datetime
 from typing import List
+from app.auth import require_mission_roles
 
 try:
     from app.database import get_db
@@ -30,7 +31,8 @@ router = APIRouter(prefix="/disasters", tags=["disasters"])
 @router.post("/validate", response_model=DisasterValidationResponse)
 def validate_disaster_report(
     request: DisasterValidationRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _mission: str = Depends(require_mission_roles("admin", "field", "analyst"))
 ):
     """
     Validate a disaster report and assess its credibility.
@@ -46,7 +48,8 @@ def validate_disaster_report(
 @router.post("/create", response_model=DisasterResponse)
 def create_disaster(
     request: DisasterCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _mission: str = Depends(require_mission_roles("admin", "field"))
 ):
     """
     Create a new disaster record in the system.
@@ -83,7 +86,8 @@ def create_disaster(
 @router.get("/{disaster_id}", response_model=DisasterResponse)
 def get_disaster(
     disaster_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _mission: str = Depends(require_mission_roles("admin", "field", "analyst"))
 ):
     """
     Get a specific disaster by ID.
@@ -99,7 +103,8 @@ def get_disaster(
 def list_disasters(
     status: str = None,
     validated_only: bool = False,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _mission: str = Depends(require_mission_roles("admin", "field", "analyst"))
 ):
     """
     List all disasters with optional filtering by status or validation state.
@@ -120,7 +125,8 @@ def list_disasters(
 def update_disaster_status(
     disaster_id: int,
     new_status: str,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _mission: str = Depends(require_mission_roles("admin", "field"))
 ):
     """
     Update the status of a disaster (e.g., from REPORTED to ACTIVE, or ACTIVE to RESOLVED).
@@ -149,7 +155,8 @@ def update_disaster_status(
 
 @router.get("/stats/summary")
 def get_disaster_statistics(
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _mission: str = Depends(require_mission_roles("admin", "field", "analyst"))
 ):
     """
     Get summary statistics about disasters.
@@ -182,7 +189,8 @@ except ImportError:
 @router.get("/alerts/{lat}/{lon}")
 def get_disaster_alerts(
     lat: float,
-    lon: float
+    lon: float,
+    _mission: str = Depends(require_mission_roles("admin", "field", "analyst"))
 ):
     """
     Get real-time disaster alerts from integrated APIs (weather, floods, wildfires)

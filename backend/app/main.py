@@ -1,12 +1,14 @@
 from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
+from pathlib import Path
 from app.routers import auth
 
 try:
     from app.config import settings
     from app.database import init_db
-    from app.routers import resources, dispatch, ai, sos, disaster, infrastructure, simulation, logging
+    from app.routers import resources, dispatch, ai, sos, disaster, infrastructure, simulation, logging, operations, public, gov_feeds, sms_alerts
     from app.websockets.manager import handle_websocket
 except ImportError:
     from config import settings
@@ -53,6 +55,13 @@ app.include_router(auth.router)
 app.include_router(infrastructure.router)
 app.include_router(simulation.router)
 app.include_router(logging.router)
+app.include_router(operations.router)
+app.include_router(public.router)
+app.include_router(gov_feeds.router)
+app.include_router(sms_alerts.router)
+uploads_dir = Path(__file__).resolve().parents[1] / "uploads"
+uploads_dir.mkdir(parents=True, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=uploads_dir), name="uploads")
 
 
 @app.get("/")

@@ -7,7 +7,21 @@ import os
 import sys
 import subprocess
 import time
+import socket
+import shutil
 from pathlib import Path
+
+def is_port_open(host: str, port: int) -> bool:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.settimeout(0.3)
+        return sock.connect_ex((host, port)) == 0
+
+
+def get_npm_command() -> str:
+    if os.name == "nt":
+        return "npm.cmd"
+    return "npm"
+
 
 def main():
     project_root = Path(__file__).parent
@@ -61,25 +75,34 @@ def main():
     
     # Start backend
     os.chdir(backend_dir)
-    
+    backend_process = None
+
     if not (backend_dir / "venv").exists():
         print("Creating virtual environment...")
         subprocess.run([sys.executable, "-m", "venv", "venv"], check=True)
-    
-    # Activate venv and start backend
-    if os.name == 'nt':  # Windows
-        activate_cmd = str(backend_dir / "venv" / "Scripts" / "activate")
-        backend_cmd = f"{activate_cmd} && pip install -r requirements.txt -q && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
-        backend_process = subprocess.Popen(backend_cmd, shell=True)
-    else:  # Unix/Linux/Mac
+
+    backend_python = backend_dir / "venv" / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
+
+    if is_port_open("127.0.0.1", 8000):
+        print("Backend already running on port 8000. Reusing existing process.")
+    else:
+        subprocess.run([str(backend_python), "-m", "pip", "install", "-r", "requirements.txt", "-q"], check=False)
         backend_process = subprocess.Popen(
-            ['bash', '-c', 
-             f'source venv/bin/activate && pip install -r requirements.txt -q && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload'],
-            cwd=backend_dir
+            [
+                str(backend_python),
+                "-m",
+                "uvicorn",
+                "app.main:app",
+                "--host",
+                "0.0.0.0",
+                "--port",
+                "8000",
+                "--reload",
+            ],
+            cwd=backend_dir,
         )
-    
-    print("Backend starting on port 8000...")
-    time.sleep(3)  # Wait for backend to start
+        print("Backend starting on port 8000...")
+        time.sleep(3)  # Wait for backend to start
     
     print()
     print("=" * 70)
@@ -90,9 +113,16 @@ def main():
     # Start frontend with correct backend URL
     os.chdir(frontend_dir)
     
+    npm_cmd = get_npm_command()
+    if shutil.which(npm_cmd) is None:
+        print(f"Error: {npm_cmd} not found in PATH.")
+        if backend_process:
+            backend_process.terminate()
+        sys.exit(1)
+
     if not (frontend_dir / "node_modules").exists():
         print("Installing dependencies...")
-        subprocess.run(["npm", "install", "-q"], check=False)
+        subprocess.run([npm_cmd, "install", "-q"], check=False)
     
     # Set environment variable for API base
     frontend_env = os.environ.copy()
@@ -103,14 +133,18 @@ def main():
     print()
     
     try:
-        subprocess.run(
-            ["npm", "run", "dev"],
-            env=frontend_env,
-            cwd=frontend_dir
-        )
+        if is_port_open("127.0.0.1", 5173):
+            print("Frontend already running on port 5173. Reusing existing process.")
+        else:
+            subprocess.run(
+                [npm_cmd, "run", "dev"],
+                env=frontend_env,
+                cwd=frontend_dir
+            )
     except KeyboardInterrupt:
         print("\nShutting down...")
-        backend_process.terminate()
+        if backend_process:
+            backend_process.terminate()
         sys.exit(0)
 
 if __name__ == "__main__":

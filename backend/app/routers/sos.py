@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import SOSReport, CrowdAssistance
+from app.auth import require_mission_roles
 from app.schemas import (
     SOSReportCreate, SOSReportUpdate, SOSReportResponse,
     CrowdAssistanceOffer, CrowdAssistanceResponse,
@@ -28,6 +29,7 @@ router = APIRouter(prefix="/sos", tags=["sos"])
 def create_sos_report(
     request: SOSReportCreate,
     db: Session = Depends(get_db),
+    _mission: str = Depends(require_mission_roles("admin", "field", "analyst")),
 ):
     """
     Create a new SOS report (citizen emergency notification)
@@ -87,6 +89,7 @@ def create_sos_report(
 def get_sos_report(
     sos_id: int,
     db: Session = Depends(get_db),
+    _mission: str = Depends(require_mission_roles("admin", "field", "analyst")),
 ):
     """Get a specific SOS report"""
     sos = services.sos.get_sos_report(db, sos_id)
@@ -100,6 +103,7 @@ def get_sos_report(
 def get_active_sos_reports(
     limit: int = 50,
     db: Session = Depends(get_db),
+    _mission: str = Depends(require_mission_roles("admin", "field", "analyst")),
 ):
     """Get all active SOS reports (pending, acknowledged, in-progress)"""
     return services.sos.get_all_active_sos(db, limit=limit)
@@ -113,6 +117,7 @@ def get_nearby_sos_reports(
     status_filter: Optional[str] = None,
     limit: int = 20,
     db: Session = Depends(get_db),
+    _mission: str = Depends(require_mission_roles("admin", "field", "analyst")),
 ):
     """
     Find SOS reports near a location
@@ -134,6 +139,7 @@ def get_sos_by_type(
     emergency_type: str,
     active_only: bool = True,
     db: Session = Depends(get_db),
+    _mission: str = Depends(require_mission_roles("admin", "field", "analyst")),
 ):
     """Get SOS reports filtered by emergency type"""
     return services.sos.search_sos_by_type(db, emergency_type, active_only)
@@ -144,6 +150,7 @@ def update_sos_report(
     sos_id: int,
     request: SOSReportUpdate,
     db: Session = Depends(get_db),
+    _mission: str = Depends(require_mission_roles("admin", "field")),
 ):
     """Update SOS report status or details"""
     sos = services.sos.update_sos_report(
@@ -159,6 +166,7 @@ def update_sos_report(
 def acknowledge_sos_report(
     sos_id: int,
     db: Session = Depends(get_db),
+    _mission: str = Depends(require_mission_roles("admin", "field")),
 ):
     """
     Emergency personnel acknowledges SOS report
@@ -185,6 +193,7 @@ def acknowledge_sos_report(
 def resolve_sos_report(
     sos_id: int,
     db: Session = Depends(get_db),
+    _mission: str = Depends(require_mission_roles("admin", "field")),
 ):
     """
     Mark SOS report as resolved
@@ -210,6 +219,7 @@ def resolve_sos_report(
 def get_clustered_sos_reports(
     cluster_radius_km: float = 2.0,
     db: Session = Depends(get_db),
+    _mission: str = Depends(require_mission_roles("admin", "field", "analyst")),
 ):
     """
     Get SOS reports clustered by geographic location
@@ -240,6 +250,7 @@ def get_clustered_sos_reports(
 def offer_assistance(
     request: CrowdAssistanceOffer,
     db: Session = Depends(get_db),
+    _mission: str = Depends(require_mission_roles("admin", "field", "analyst")),
 ):
     """
     Citizen offers to help with SOS report
@@ -288,6 +299,7 @@ def get_assistance_offers(
     sos_id: int,
     available_only: bool = True,
     db: Session = Depends(get_db),
+    _mission: str = Depends(require_mission_roles("admin", "field", "analyst")),
 ):
     """Get all crowd assistance offers for a specific SOS"""
     offers = services.sos.get_crowd_assistance_for_sos(db, sos_id, available_only)
@@ -298,6 +310,7 @@ def get_assistance_offers(
 def accept_assistance(
     assistance_id: int,
     db: Session = Depends(get_db),
+    _mission: str = Depends(require_mission_roles("admin", "field")),
 ):
     """Accept a crowd assistance offer"""
     assistance = services.sos.accept_crowd_assistance(db, assistance_id)
@@ -311,6 +324,7 @@ def accept_assistance(
 def broadcast_alert(
     request: AlertBroadcastRequest,
     db: Session = Depends(get_db),
+    _mission: str = Depends(require_mission_roles("admin", "field")),
 ):
     """
     Broadcast an alert about SOS report
@@ -337,7 +351,10 @@ def broadcast_alert(
 
 
 @router.get("/analytics", response_model=SOSAnalytics)
-def get_sos_analytics(db: Session = Depends(get_db)):
+def get_sos_analytics(
+    db: Session = Depends(get_db),
+    _mission: str = Depends(require_mission_roles("admin", "field", "analyst")),
+):
     """
     Get real-time analytics about SOS reports
     
@@ -358,6 +375,7 @@ def get_resources_for_sos(
     sos_id: int,
     radius_km: float = 10.0,
     db: Session = Depends(get_db),
+    _mission: str = Depends(require_mission_roles("admin", "field", "analyst")),
 ):
     """
     Get emergency resources near a specific SOS report

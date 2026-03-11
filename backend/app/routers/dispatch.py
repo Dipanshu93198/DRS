@@ -4,6 +4,7 @@ from app.database import get_db
 from app.schemas import DispatchRequest, DispatchRecommendation
 from app.models import DispatchRecord, Resource, ResourceStatus
 from app.services.dispatch import auto_dispatch
+from app.auth import require_mission_roles
 from typing import List
 
 router = APIRouter(prefix="/dispatch", tags=["dispatch"])
@@ -12,7 +13,8 @@ router = APIRouter(prefix="/dispatch", tags=["dispatch"])
 @router.post("/auto", response_model=DispatchRecommendation)
 def auto_dispatch_resource(
     request: DispatchRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _mission: str = Depends(require_mission_roles("admin", "field")),
 ):
     """
     Automatically dispatch the best available resource to a disaster location
@@ -28,7 +30,8 @@ def auto_dispatch_resource(
 
 @router.get("/active")
 def get_active_dispatch_records(
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _mission: str = Depends(require_mission_roles("admin", "field", "analyst")),
 ):
     """Get all active dispatch records"""
     records = db.query(DispatchRecord).filter(
@@ -66,7 +69,8 @@ def get_active_dispatch_records(
 @router.get("/{dispatch_id}")
 def get_dispatch_record(
     dispatch_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _mission: str = Depends(require_mission_roles("admin", "field", "analyst")),
 ):
     """Get specific dispatch record"""
     record = db.query(DispatchRecord).filter(DispatchRecord.id == dispatch_id).first()
@@ -96,7 +100,8 @@ def get_dispatch_record(
 def update_dispatch_status(
     dispatch_id: int,
     new_status: str,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _mission: str = Depends(require_mission_roles("admin", "field")),
 ):
     """Update dispatch status"""
     record = db.query(DispatchRecord).filter(DispatchRecord.id == dispatch_id).first()

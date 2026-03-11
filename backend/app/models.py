@@ -437,5 +437,110 @@ class OperationalLog(Base):
 
     class Config:
         from_attributes = True
-    
- 
+
+
+class IncidentAssignment(Base):
+    """Persistent incident assignment board state"""
+
+    __tablename__ = "incident_assignments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    disaster_key = Column(String, unique=True, index=True)
+    owner = Column(String, default="District Control")
+    status = Column(String, default="queued")  # queued, assigned, enroute, onsite, resolved
+    eta_minutes = Column(Integer, default=30)
+    sla_minutes = Column(Integer, default=120)
+    notes = Column(String, nullable=True)
+    updated_by_user_id = Column(Integer, nullable=True)
+    updated_by_name = Column(String, nullable=True)
+    last_updated = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    class Config:
+        from_attributes = True
+
+
+class AuditEvent(Base):
+    """Persistent command audit events"""
+
+    __tablename__ = "audit_events"
+
+    id = Column(Integer, primary_key=True, index=True)
+    actor_name = Column(String, index=True)
+    actor_user_id = Column(Integer, nullable=True, index=True)
+    mission_role = Column(String, index=True)
+    action = Column(String, index=True)
+    target = Column(String, index=True)
+    severity = Column(String, default="info", index=True)  # info, warning, critical
+    details = Column(String, nullable=True)
+    event_metadata = Column("metadata", JSONColumnType, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+    class Config:
+        from_attributes = True
+
+
+class CitizenUpdate(Base):
+    """Citizen-submitted field updates with optional photo evidence."""
+
+    __tablename__ = "citizen_updates"
+
+    id = Column(Integer, primary_key=True, index=True)
+    reporter_name = Column(String, nullable=True)
+    reporter_phone = Column(String, nullable=True)
+    title = Column(String, nullable=False)
+    description = Column(String, nullable=False)
+    category = Column(String, default="other", index=True)
+    latitude = Column(Float, index=True)
+    longitude = Column(Float, index=True)
+    image_url = Column(String, nullable=True)
+    status = Column(String, default="submitted", index=True)  # submitted, verified, rejected
+    review_note = Column(String, nullable=True)
+    reviewed_by_user_id = Column(Integer, nullable=True)
+    reviewed_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+    class Config:
+        from_attributes = True
+
+
+class AlertSubscriber(Base):
+    """Citizen opt-in subscription for emergency SMS alerts."""
+
+    __tablename__ = "alert_subscribers"
+
+    id = Column(Integer, primary_key=True, index=True)
+    phone = Column(String, unique=True, index=True, nullable=False)
+    name = Column(String, nullable=True)
+    latitude = Column(Float, nullable=True, index=True)
+    longitude = Column(Float, nullable=True, index=True)
+    consent_sms = Column(Integer, default=1, index=True)
+    is_active = Column(Integer, default=1, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    class Config:
+        from_attributes = True
+
+
+class SMSAlertLog(Base):
+    """Outbound SMS dispatch log for auditability and delivery tracking."""
+
+    __tablename__ = "sms_alert_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    incident_title = Column(String, nullable=False, index=True)
+    incident_latitude = Column(Float, nullable=False, index=True)
+    incident_longitude = Column(Float, nullable=False, index=True)
+    impact_radius_km = Column(Float, nullable=False)
+    recipient_phone = Column(String, index=True, nullable=False)
+    message = Column(String, nullable=False)
+    status = Column(String, default="queued", index=True)  # queued, sent, failed
+    provider = Column(String, default="mock")
+    provider_message_id = Column(String, nullable=True)
+    error = Column(String, nullable=True)
+    sent_at = Column(DateTime, nullable=True, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+    class Config:
+        from_attributes = True
