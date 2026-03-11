@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Radio, Shield, RefreshCw, Wifi, WifiOff } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
+import { type MissionRole, useAuth } from "@/hooks/useAuth";
 
 interface Props {
   wsConnected: boolean;
@@ -11,9 +11,22 @@ interface Props {
   lastRefresh: Date;
   onRefresh: () => void;
   onRefreshAlerts: () => void;
+  missionRole: MissionRole;
+  onRoleChange: (role: MissionRole) => void;
+  allowedMissionRoles: MissionRole[];
 }
 
-export default function Header({ wsConnected, usgsLoading, alertsLoading, lastRefresh, onRefresh, onRefreshAlerts }: Props) {
+export default function Header({
+  wsConnected,
+  usgsLoading,
+  alertsLoading,
+  lastRefresh,
+  onRefresh,
+  onRefreshAlerts,
+  missionRole,
+  onRoleChange,
+  allowedMissionRoles,
+}: Props) {
   const [time, setTime] = useState(new Date());
 
   useEffect(() => {
@@ -85,6 +98,17 @@ export default function Header({ wsConnected, usgsLoading, alertsLoading, lastRe
           {time.toUTCString().slice(0, -4)} UTC
         </div>
 
+        <select
+          value={missionRole}
+          onChange={(e) => onRoleChange(e.target.value as MissionRole)}
+          className="h-7 rounded-md border border-border bg-secondary px-2 text-[10px] font-mono uppercase tracking-wide"
+          title="Mission Profile"
+        >
+          {allowedMissionRoles.includes("admin") && <option value="admin">Admin</option>}
+          {allowedMissionRoles.includes("field") && <option value="field">Field</option>}
+          {allowedMissionRoles.includes("analyst") && <option value="analyst">Analyst</option>}
+        </select>
+
         {/* auth button */}
         <AuthControls />
       </div>
@@ -101,7 +125,7 @@ function AuthControls() {
       <button
         onClick={() => {
           logout();
-          navigate('/login');
+          navigate('/');
         }}
         className="text-[10px] font-mono text-muted-foreground hover:text-primary transition-colors"
       >

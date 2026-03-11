@@ -13,6 +13,7 @@ import {
   Loader,
   Award,
 } from 'lucide-react';
+import { getApiBase } from '@/lib/apiBase';
 
 interface CrowdAssistanceOffer {
   id: number;
@@ -43,6 +44,7 @@ export const CrowdAssistancePanel: React.FC<CrowdAssistancePanelProps> = ({
   const [offers, setOffers] = useState<CrowdAssistanceOffer[]>([]);
   const [loading, setLoading] = useState(false);
   const [expandedOffer, setExpandedOffer] = useState<number | null>(null);
+  const apiBase = getApiBase();
 
   useEffect(() => {
     if (sosReportId) {
@@ -57,7 +59,7 @@ export const CrowdAssistancePanel: React.FC<CrowdAssistancePanelProps> = ({
     if (!sosReportId) return;
     setLoading(true);
     try {
-      const response = await fetch(`http://localhost:8000/sos/assistance/offers/${sosReportId}?available_only=true&limit=${maxHelpers}`);
+      const response = await fetch(`${apiBase}/sos/assistance/offers/${sosReportId}?available_only=true&limit=${maxHelpers}`);
       if (response.ok) {
         const data = await response.json();
         setOffers(data);
@@ -71,7 +73,7 @@ export const CrowdAssistancePanel: React.FC<CrowdAssistancePanelProps> = ({
 
   const handleAcceptAssistance = async (offerId: number) => {
     try {
-      const response = await fetch(`http://localhost:8000/sos/assistance/${offerId}/accept`, {
+      const response = await fetch(`${apiBase}/sos/assistance/${offerId}/accept`, {
         method: 'POST',
       });
       if (response.ok) {

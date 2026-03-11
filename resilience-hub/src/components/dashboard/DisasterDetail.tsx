@@ -18,9 +18,10 @@ function formatPop(n: number): string {
 interface Props {
   disaster: Disaster | null;
   onClose: () => void;
+  onStatusChange: (id: string, status: Disaster["status"], severity?: Disaster["severity"]) => void;
 }
 
-export default function DisasterDetail({ disaster, onClose }: Props) {
+export default function DisasterDetail({ disaster, onClose, onStatusChange }: Props) {
   return (
     <AnimatePresence>
       {disaster && (
@@ -76,6 +77,27 @@ export default function DisasterDetail({ disaster, onClose }: Props) {
               <span className="font-mono text-sm font-bold text-accent">{disaster.magnitude}</span>
             </div>
           )}
+
+          <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <button
+              onClick={() => onStatusChange(disaster.id, "monitoring")}
+              className="px-3 py-2 rounded-md text-xs font-semibold border border-border bg-secondary/70 hover:bg-secondary"
+            >
+              Set Monitoring
+            </button>
+            <button
+              onClick={() => onStatusChange(disaster.id, "active", "critical")}
+              className="px-3 py-2 rounded-md text-xs font-semibold border border-danger/60 text-danger bg-danger/10 hover:bg-danger/20"
+            >
+              Escalate Critical
+            </button>
+            <button
+              onClick={() => onStatusChange(disaster.id, "resolved", "low")}
+              className="px-3 py-2 rounded-md text-xs font-semibold border border-success/60 text-success bg-success/10 hover:bg-success/20"
+            >
+              Mark Resolved
+            </button>
+          </div>
         </motion.div>
       )}
     </AnimatePresence>

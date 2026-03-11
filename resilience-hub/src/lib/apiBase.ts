@@ -5,24 +5,20 @@ export function getApiBase(): string {
     return env;
   }
 
-  // If running in a Codespaces preview or similar "<name>-<port>.githubpreview.dev"
-  // we can attempt to derive the backend URL by swapping the port to 8000.
-  if (typeof window !== 'undefined') {
-    const { protocol, hostname } = window.location;
-    if (hostname.endsWith('githubpreview.dev')) {
-      const parts = hostname.split('-');
-      if (parts.length >= 2) {
-        // replace the last segment (which is the current port) with 8000
-        parts[parts.length - 1] = '8000';
-        const backendHost = parts.join('-');
-        return `${protocol}//${backendHost}`;
-      }
-    }
+  // Default to same-origin proxy in dev to avoid CORS/mixed-content issues.
+  return '/api';
+}
 
-    // fallback: use same host with port 8000
-    return `${protocol}//${hostname}:8000`;
+export function getWsBase(): string {
+  const apiBase = getApiBase();
+  if (apiBase.startsWith('/')) {
+    return apiBase;
   }
-
-  // default to localhost for non-browser environments (e.g. tests)
-  return 'http://localhost:8000';
+  if (apiBase.startsWith('https://')) {
+    return `wss://${apiBase.slice('https://'.length)}`;
+  }
+  if (apiBase.startsWith('http://')) {
+    return `ws://${apiBase.slice('http://'.length)}`;
+  }
+  return apiBase;
 }

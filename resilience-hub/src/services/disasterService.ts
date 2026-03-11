@@ -19,7 +19,7 @@ export interface DisasterAlertsResponse {
 }
 
 export async function fetchDisasterAlerts(lat: number, lon: number): Promise<DisasterAlertsResponse> {
-  const response = await fetch(`${API_BASE}/disaster/alerts/${lat}/${lon}`);
+  const response = await fetch(`${API_BASE}/disasters/alerts/${lat}/${lon}`);
   if (!response.ok) {
     throw new Error(`Failed to fetch disaster alerts: ${response.statusText}`);
   }

@@ -4,6 +4,7 @@ Phase 5: Citizen SOS + Real-Time Alerts
 """
 
 import { useEffect, useState, useCallback, useRef } from 'react';
+import { getWsBase } from '@/lib/apiBase';
 
 export interface SOSAlert {
   id: number;
@@ -37,7 +38,7 @@ interface UseSOSSocketOptions {
  */
 export const useSOSSocket = (options: UseSOSSocketOptions = {}) => {
   const {
-    url = 'ws://localhost:8000/sos/ws',
+    url = `${getWsBase()}/sos/ws`,
     enabled = true,
     onAlert,
     onConnect,

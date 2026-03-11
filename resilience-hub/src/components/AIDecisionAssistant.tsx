@@ -14,6 +14,7 @@ import {
   CheckCircle,
   XCircle,
 } from 'lucide-react';
+import { getApiBase } from '@/lib/apiBase';
 
 interface DisasterInfo {
   disaster_type: string;
@@ -60,6 +61,7 @@ export const AIDecisionAssistant: React.FC<AIDecisionAssistantProps> = ({
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const [results, setResults] = useState<QuickActionResult[]>([]);
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
+  const apiBase = getApiBase();
 
   if (!disasterInfo) {
     return (
@@ -81,7 +83,7 @@ export const AIDecisionAssistant: React.FC<AIDecisionAssistantProps> = ({
   const handleExplain = async () => {
     setLoadingAction('explain');
     try {
-      const response = await fetch('http://localhost:8000/ai/explain-disaster', {
+      const response = await fetch(`${apiBase}/ai/explain-disaster`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -111,7 +113,7 @@ export const AIDecisionAssistant: React.FC<AIDecisionAssistantProps> = ({
   const handleRecommend = async () => {
     setLoadingAction('recommend');
     try {
-      const response = await fetch('http://localhost:8000/ai/prioritize-resources', {
+      const response = await fetch(`${apiBase}/ai/prioritize-resources`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -146,7 +148,7 @@ export const AIDecisionAssistant: React.FC<AIDecisionAssistantProps> = ({
   const handleSafety = async () => {
     setLoadingAction('safety');
     try {
-      const response = await fetch('http://localhost:8000/ai/safety-instructions', {
+      const response = await fetch(`${apiBase}/ai/safety-instructions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -185,7 +187,7 @@ export const AIDecisionAssistant: React.FC<AIDecisionAssistantProps> = ({
   const handleAnalyze = async () => {
     setLoadingAction('analyze');
     try {
-      const response = await fetch('http://localhost:8000/ai/analyze-situation', {
+      const response = await fetch(`${apiBase}/ai/analyze-situation`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

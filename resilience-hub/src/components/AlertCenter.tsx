@@ -12,6 +12,7 @@ import {
   AlertCircle,
   RefreshCw,
 } from 'lucide-react';
+import { getApiBase } from '@/lib/apiBase';
 
 interface SOSReport {
   id: number;
@@ -46,11 +47,12 @@ export const AlertCenter: React.FC<AlertCenterProps> = ({
   const [loading, setLoading] = useState(false);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
   const [selectedAlert, setSelectedAlert] = useState<number | null>(null);
+  const apiBase = getApiBase();
 
   const fetchAlerts = async () => {
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:8000/sos/reports/active?limit=' + maxAlerts);
+      const response = await fetch(`${apiBase}/sos/reports/active?limit=${maxAlerts}`);
       if (response.ok) {
         const data = await response.json();
         setAlerts(data);
@@ -135,7 +137,7 @@ export const AlertCenter: React.FC<AlertCenterProps> = ({
 
   const handleAcknowledge = async (sosId: number) => {
     try {
-      const response = await fetch(`http://localhost:8000/sos/report/${sosId}/acknowledge`, {
+      const response = await fetch(`${apiBase}/sos/report/${sosId}/acknowledge`, {
         method: 'POST',
       });
       if (response.ok) {

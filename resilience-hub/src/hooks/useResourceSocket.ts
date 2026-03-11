@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { getWsBase } from '@/lib/apiBase';
 
 interface WebSocketMessage {
   type: string;
@@ -11,8 +12,7 @@ export const useResourceSocket = () => {
   const callbacksRef = useRef<((data: WebSocketMessage) => void)[]>([]);
 
   useEffect(() => {
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//localhost:8000/ws/resources`;
+    const wsUrl = `${getWsBase()}/ws/resources`;
 
     const ws = new WebSocket(wsUrl);
 

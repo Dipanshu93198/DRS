@@ -13,6 +13,7 @@ import {
   Loader,
   CheckCircle,
 } from 'lucide-react';
+import { getApiBase } from '@/lib/apiBase';
 
 interface SOSReportPanelProps {
   onReportSubmitted?: (sosId: number) => void;
@@ -42,6 +43,7 @@ export const SOSReportPanel: React.FC<SOSReportPanelProps> = ({
   const [step, setStep] = useState<'form' | 'preview' | 'submitted'>('form');
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState<{ id: number; timestamp: Date } | null>(null);
+  const apiBase = getApiBase();
   const [formData, setFormData] = useState<FormData>({
     reporter_name: '',
     reporter_phone: '',
@@ -86,7 +88,7 @@ export const SOSReportPanel: React.FC<SOSReportPanelProps> = ({
   const handleSubmit = async () => {
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:8000/sos/report', {
+      const response = await fetch(`${apiBase}/sos/report`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { MapContainer, TileLayer, CircleMarker, Popup, useMap, LayersControl } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { DISASTER_ICONS, type Disaster, type SeverityLevel } from "@/data/mockDisasters";
+import { listCitizenUpdates, resolveCitizenImageUrl, type CitizenUpdateItem } from "@/services/citizenUpdatesService";
 import { motion } from "framer-motion";
 
 const severityRadius: Record<SeverityLevel, number> = {
@@ -35,6 +36,32 @@ interface DisasterMapProps {
 }
 
 export default function DisasterMap({ disasters, onSelectDisaster, selectedDisaster }: DisasterMapProps) {
+  const [citizenUpdates, setCitizenUpdates] = useState<CitizenUpdateItem[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const load = async () => {
+      try {
+        const rows = await listCitizenUpdates(60);
+        if (!cancelled) {
+          setCitizenUpdates(rows.filter((r) => Number.isFinite(r.latitude) && Number.isFinite(r.longitude)));
+        }
+      } catch {
+        if (!cancelled) {
+          setCitizenUpdates([]);
+        }
+      }
+    };
+
+    load();
+    const timer = setInterval(load, 15000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, []);
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -81,6 +108,64 @@ export default function DisasterMap({ disasters, onSelectDisaster, selectedDisas
               url="https://tile.openweathermap.org/map/temp_new/{z}/{x}/{y}.png?appid=9de243494c0b295cca9337e1e96b00e2"
               opacity={0.5}
             />
+          </LayersControl.Overlay>
+          <LayersControl.Overlay checked name={`Citizen Reports (${citizenUpdates.length})`}>
+            <>
+              {citizenUpdates.map((u) => {
+                const imageUrl = resolveCitizenImageUrl(u.image_url);
+                const statusColor =
+                  u.status === "verified" ? "#22c55e" : u.status === "rejected" ? "#ef4444" : "#38bdf8";
+                return (
+                  <CircleMarker
+                    key={`citizen-${u.id}`}
+                    center={[u.latitude, u.longitude]}
+                    radius={7}
+                    pathOptions={{
+                      color: statusColor,
+                      fillColor: statusColor,
+                      fillOpacity: 0.5,
+                      weight: 2,
+                    }}
+                  >
+                    <Popup>
+                      <div className="text-sm font-sans" style={{ color: "#0f172a", minWidth: "220px" }}>
+                        <strong>Citizen Update</strong>
+                        <br />
+                        <strong>{u.title}</strong>
+                        <br />
+                        <span>{u.description}</span>
+                        <br />
+                        <span style={{ fontSize: "11px", color: "#334155" }}>
+                          {u.category.toUpperCase()} • {u.status.toUpperCase()}
+                        </span>
+                        <br />
+                        <span style={{ fontSize: "11px", color: "#334155" }}>
+                          {new Date(u.created_at).toLocaleString()}
+                        </span>
+                        {imageUrl && (
+                          <>
+                            <br />
+                            <a href={imageUrl} target="_blank" rel="noreferrer">
+                              <img
+                                src={imageUrl}
+                                alt="Citizen upload"
+                                style={{
+                                  marginTop: "6px",
+                                  width: "100%",
+                                  maxWidth: "240px",
+                                  borderRadius: "6px",
+                                  border: "1px solid #cbd5e1",
+                                }}
+                              />
+                            </a>
+                          </>
+                        )}
+                      </div>
+                    </Popup>
+                  </CircleMarker>
+                );
+              })}
+            </>
           </LayersControl.Overlay>
         </LayersControl>
 

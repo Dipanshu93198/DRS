@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Send, Loader, Mic, Volume2, RotateCcw } from 'lucide-react';
+import { getApiBase } from '@/lib/apiBase';
 
 interface Message {
   id: string;
@@ -29,6 +30,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   const [currentConversationId, setCurrentConversationId] = useState(conversationId);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
+  const apiBase = getApiBase();
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -73,7 +75,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
     setLoading(true);
 
     try {
-      const response = await fetch('http://localhost:8000/ai/chat', {
+      const response = await fetch(`${apiBase}/ai/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -133,7 +135,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
 
   const handleClearChat = () => {
     if (currentConversationId) {
-      fetch(`http://localhost:8000/ai/conversations/${currentConversationId}`, {
+      fetch(`${apiBase}/ai/conversations/${currentConversationId}`, {
         method: 'DELETE',
       });
     }

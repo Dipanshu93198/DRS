@@ -2,11 +2,29 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { type Disaster, type Alert, mockDisasters, mockAlerts } from "@/data/mockDisasters";
 import { fetchUSGSEarthquakes } from "@/services/usgsService";
 import { fetchDisasterAlerts, type DisasterAlert } from "@/services/disasterService";
+import { fetchLiveBoard } from "@/services/liveBoardService";
 import { useSimulatedWebSocket } from "@/hooks/useSimulatedWebSocket";
 
+function normalizeDisasterType(raw: string): Disaster["type"] {
+  const key = raw.toLowerCase();
+  if (key === "earthquake") return "earthquake";
+  if (key === "flood") return "flood";
+  if (key === "wildfire") return "wildfire";
+  if (key === "cyclone" || key === "hurricane" || key === "tornado") return "cyclone";
+  if (key === "tsunami") return "tsunami";
+  return "volcano";
+}
+
+function normalizeStatus(raw: string): Disaster["status"] {
+  const key = raw.toLowerCase();
+  if (key === "resolved" || key === "cancelled") return "resolved";
+  if (key === "active" || key === "contained") return "active";
+  return "monitoring";
+}
+
 export function useDisasterData() {
-  const [disasters, setDisasters] = useState<Disaster[]>(mockDisasters);
-  const [alerts, setAlerts] = useState<Alert[]>(mockAlerts);
+  const [disasters, setDisasters] = useState<Disaster[]>([]);
+  const [alerts, setAlerts] = useState<Alert[]>([]);
   const [disasterAlerts, setDisasterAlerts] = useState<DisasterAlert[]>([]);
   const [selected, setSelected] = useState<Disaster | null>(null);
   const [usgsLoading, setUsgsLoading] = useState(false);
@@ -23,6 +41,48 @@ export function useDisasterData() {
     setAlerts(prev => [a, ...prev]);
   }, []);
 
+  const updateDisasterStatus = useCallback(
+    (id: string, status: Disaster["status"], severity?: Disaster["severity"]) => {
+      setDisasters(prev =>
+        prev.map(d =>
+          d.id === id
+            ? {
+                ...d,
+                status,
+                severity: severity ?? d.severity,
+                timestamp: new Date().toISOString(),
+              }
+            : d
+        )
+      );
+
+      setSelected(prev =>
+        prev && prev.id === id
+          ? {
+              ...prev,
+              status,
+              severity: severity ?? prev.severity,
+              timestamp: new Date().toISOString(),
+            }
+          : prev
+      );
+
+      addAlert({
+        id: `action-${id}-${Date.now()}`,
+        disasterId: id,
+        type: status === "resolved" ? "update" : severity === "critical" ? "critical" : "warning",
+        message:
+          status === "resolved"
+            ? "Incident marked resolved by command center."
+            : severity === "critical"
+            ? "Incident escalated to CRITICAL and priority routing enabled."
+            : `Incident moved to ${status.toUpperCase()} state.`,
+        timestamp: new Date().toISOString(),
+      });
+    },
+    [addAlert]
+  );
+
   // Simulated WebSocket
   const ws = useSimulatedWebSocket(addDisaster, addAlert, 20000);
 
@@ -30,12 +90,35 @@ export function useDisasterData() {
   const refreshUSGS = useCallback(async () => {
     setUsgsLoading(true);
     try {
-      const quakes = await fetchUSGSEarthquakes();
-      setDisasters(prev => {
-        // Remove old USGS entries, keep mock + simulated
-        const nonUsgs = prev.filter(d => !d.id.startsWith('usgs-'));
-        return [...nonUsgs, ...quakes];
-      });
+      const [board, quakes] = await Promise.allSettled([fetchLiveBoard(80), fetchUSGSEarthquakes()]);
+
+      const liveDisasters: Disaster[] =
+        board.status === "fulfilled"
+          ? board.value.incidents.map((i) => ({
+              id: i.id,
+              type: normalizeDisasterType(i.type),
+              name: i.title.slice(0, 90),
+              location: i.source?.toUpperCase?.() ?? "DRS",
+              lat: i.lat,
+              lng: i.lng,
+              severity: i.severity,
+              affectedPopulation: i.affected_population ?? 0,
+              deployedTeams: i.severity === "critical" ? 24 : i.severity === "high" ? 14 : 6,
+              timestamp: i.timestamp,
+              description: i.title,
+              status: normalizeStatus(i.status),
+            }))
+          : [];
+
+      const usgsDisasters: Disaster[] = quakes.status === "fulfilled" ? quakes.value : [];
+
+      const merged = [...liveDisasters, ...usgsDisasters];
+      if (merged.length > 0) {
+        setDisasters(merged);
+      } else {
+        setDisasters(mockDisasters);
+        setAlerts(mockAlerts);
+      }
       setLastRefresh(new Date());
     } finally {
       setUsgsLoading(false);
@@ -107,6 +190,7 @@ export function useDisasterData() {
     selected,
     setSelected,
     selectById,
+    updateDisasterStatus,
     stats,
     wsConnected: ws.connected,
     usgsLoading,
