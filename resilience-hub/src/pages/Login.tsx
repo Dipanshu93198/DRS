@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { login as loginApi, loginWithGoogle, register as registerApi } from '@/services/authService';
+import { getGoogleClientId, login as loginApi, loginWithGoogle, register as registerApi } from '@/services/authService';
 import { type MissionRole, useAuth } from '@/hooks/useAuth';
+
+const GOOGLE_GSI_SCRIPT_ID = 'google-gsi-client';
 
 declare global {
   interface Window {
@@ -19,6 +21,13 @@ declare global {
   }
 }
 
+function getErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof Error && error.message.trim() !== '') {
+    return error.message;
+  }
+  return fallback;
+}
+
 export default function Login() {
   const [isRegister, setIsRegister] = useState(false);
   const [email, setEmail] = useState('');
@@ -33,7 +42,43 @@ export default function Login() {
   const navigate = useNavigate();
   const { login } = useAuth();
   const googleBtnRef = useRef<HTMLDivElement | null>(null);
-  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
+  const envGoogleClientId = (import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined)?.trim();
+  const [googleClientId, setGoogleClientId] = useState(envGoogleClientId || '');
+  const [googleConfigLoading, setGoogleConfigLoading] = useState(!envGoogleClientId);
+  const showMockGoogleLogin = import.meta.env.DEV;
+
+  useEffect(() => {
+    let active = true;
+
+    if (envGoogleClientId) {
+      setGoogleClientId(envGoogleClientId);
+      setGoogleError('');
+      setGoogleConfigLoading(false);
+      return () => {
+        active = false;
+      };
+    }
+
+    setGoogleConfigLoading(true);
+    getGoogleClientId()
+      .then((clientId) => {
+        if (!active) return;
+        setGoogleClientId(clientId || '');
+        setGoogleError('');
+      })
+      .catch((err: unknown) => {
+        if (!active) return;
+        setGoogleError(getErrorMessage(err, 'Unable to load Google sign-in configuration from backend.'));
+      })
+      .finally(() => {
+        if (!active) return;
+        setGoogleConfigLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [envGoogleClientId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,8 +96,8 @@ export default function Login() {
         login(res.access_token, { email, missionRole: res.user?.mission_role || missionRole });
         navigate('/dashboard');
       }
-    } catch (err: any) {
-      setError(err.message || (isRegister ? 'Registration failed' : 'Invalid credentials'));
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, isRegister ? 'Registration failed' : 'Invalid credentials'));
     } finally {
       setLoading(false);
     }
@@ -72,8 +117,8 @@ export default function Login() {
           missionRole: res.user?.mission_role || missionRole,
         });
         navigate('/dashboard');
-      } catch (err: any) {
-        setError(err.message || 'Google sign-in failed');
+      } catch (err: unknown) {
+        setError(getErrorMessage(err, 'Google sign-in failed'));
       } finally {
         setGoogleLoading(false);
       }
@@ -105,7 +150,16 @@ export default function Login() {
       return;
     }
 
+    const existingScript = document.getElementById(GOOGLE_GSI_SCRIPT_ID) as HTMLScriptElement | null;
+    if (existingScript) {
+      existingScript.addEventListener('load', renderGoogle, { once: true });
+      return () => {
+        existingScript.removeEventListener('load', renderGoogle);
+      };
+    }
+
     const script = document.createElement('script');
+    script.id = GOOGLE_GSI_SCRIPT_ID;
     script.src = 'https://accounts.google.com/gsi/client';
     script.async = true;
     script.defer = true;
@@ -114,9 +168,29 @@ export default function Login() {
     document.head.appendChild(script);
 
     return () => {
-      document.head.removeChild(script);
+      script.onload = null;
+      script.onerror = null;
     };
   }, [googleClientId, isRegister, login, missionRole, navigate]);
+
+  const handleMockGoogleLogin = async () => {
+    if (isRegister) return;
+    try {
+      setGoogleLoading(true);
+      setError('');
+      const res = await loginWithGoogle('mock_google_token_for_testing', missionRole);
+      login(res.access_token, {
+        email: res.user?.email,
+        name: res.user?.name,
+        missionRole: res.user?.mission_role || missionRole,
+      });
+      navigate('/dashboard');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, 'Mock Google sign-in failed'));
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
 
   return (
     <div
@@ -256,13 +330,39 @@ export default function Login() {
             {!isRegister && (
               <div className="pt-2">
                 <p className="text-[10px] font-mono text-cyan-300/70 mb-2">OR AUTHENTICATE VIA GOOGLE</p>
-                {googleClientId ? (
-                  <div className="flex justify-center">
-                    <div ref={googleBtnRef} />
+                {googleConfigLoading ? (
+                  <div className="w-full rounded border border-cyan-700/50 bg-slate-900/70 px-3 py-2 text-xs font-mono text-cyan-300">
+                    Checking Google sign-in configuration...
+                  </div>
+                ) : googleClientId ? (
+                  <div className="flex flex-col gap-3">
+                    <div className="flex justify-center">
+                      <div ref={googleBtnRef} />
+                    </div>
+                    {showMockGoogleLogin && (
+                      <button
+                        type="button"
+                        onClick={handleMockGoogleLogin}
+                        disabled={googleLoading}
+                        className="w-full py-2 bg-slate-800 border border-cyan-700/50 text-cyan-300 font-mono font-bold rounded uppercase text-[11px] tracking-wider transition hover:bg-cyan-900/30 disabled:opacity-50"
+                      >
+                        Use Local Mock Google Login
+                      </button>
+                    )}
                   </div>
                 ) : (
-                  <div className="w-full rounded border border-amber-500/50 bg-amber-950/30 px-3 py-2 text-xs font-mono text-amber-300">
-                    Google sign-in setup missing: add <code>VITE_GOOGLE_CLIENT_ID</code> in <code>resilience-hub/.env</code>
+                  <div className="flex flex-col gap-3">
+                    <div className="w-full rounded border border-amber-500/50 bg-amber-950/30 px-3 py-2 text-xs font-mono text-amber-300">
+                      Google sign-in setup missing. Add <code>GOOGLE_CLIENT_ID</code> in <code>backend/.env</code> or <code>VITE_GOOGLE_CLIENT_ID</code> in <code>resilience-hub/.env</code>, then restart the servers.
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleMockGoogleLogin}
+                      disabled={googleLoading}
+                      className="w-full py-2 bg-slate-800 border-2 border-amber-500/50 text-amber-400 font-mono font-bold rounded uppercase text-xs tracking-wider transition hover:bg-amber-900/40 disabled:opacity-50"
+                    >
+                      Bypass / Mock Google Login
+                    </button>
                   </div>
                 )}
                 {googleLoading && (

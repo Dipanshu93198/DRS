@@ -26,6 +26,19 @@ interface SessionMe {
   allowed_mission_roles: MissionRole[];
 }
 
+interface GoogleAuthConfigResponse {
+  client_id?: string | null;
+  configured?: boolean;
+}
+
+function toNetworkAuthError(): Error {
+  return new Error(
+    `Cannot connect to server at ${API_BASE}. ` +
+    `Make sure the backend is running and the port is accessible from your browser. ` +
+    `If you're using Codespaces run \`python3 ../start-all.py\` or forward port 8000 in the Ports panel.`
+  );
+}
+
 function mapAuthHttpError(status: number, statusText: string, detail?: string): Error {
   if (detail && detail.trim() !== "") {
     return new Error(detail);
@@ -60,32 +73,55 @@ export async function login(email: string, password: string): Promise<LoginRespo
       throw mapAuthHttpError(response.status, `Login failed: ${response.statusText}`, data?.detail);
     }
     return response.json();
-  } catch (err: any) {
+  } catch (err: unknown) {
     if (err instanceof TypeError) {
-      throw new Error(
-        `Cannot connect to server at ${API_BASE}. ` +
-        `Make sure the backend is running and the port is accessible from your browser. ` +
-        `If you're using Codespaces run \`python3 ../start-all.py\` or forward port 8000 in the Ports panel.`
-      );
+      throw toNetworkAuthError();
     }
     throw err;
   }
 }
 
 export async function loginWithGoogle(idToken: string, missionRole: MissionRole = "admin"): Promise<LoginResponse> {
-  const response = await fetch(`${API_BASE}/auth/google`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ id_token: idToken, mission_role: missionRole }),
-  });
+  try {
+    const response = await fetch(`${API_BASE}/auth/google`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ id_token: idToken, mission_role: missionRole }),
+    });
 
-  if (!response.ok) {
-    const data = await response.json().catch(() => null);
-    throw mapAuthHttpError(response.status, "Google login failed", data?.detail);
+    if (!response.ok) {
+      const data = await response.json().catch(() => null);
+      throw mapAuthHttpError(response.status, "Google login failed", data?.detail);
+    }
+    return response.json();
+  } catch (err: unknown) {
+    if (err instanceof TypeError) {
+      throw toNetworkAuthError();
+    }
+    throw err;
   }
-  return response.json();
+}
+
+export async function getGoogleClientId(): Promise<string | null> {
+  try {
+    const response = await fetch(`${API_BASE}/auth/google/config`);
+
+    if (!response.ok) {
+      const data = await response.json().catch(() => null);
+      throw mapAuthHttpError(response.status, "Google configuration unavailable", data?.detail);
+    }
+
+    const data = (await response.json()) as GoogleAuthConfigResponse;
+    const clientId = typeof data.client_id === "string" ? data.client_id.trim() : "";
+    return clientId || null;
+  } catch (err: unknown) {
+    if (err instanceof TypeError) {
+      throw toNetworkAuthError();
+    }
+    throw err;
+  }
 }
 
 export async function register(
@@ -108,13 +144,9 @@ export async function register(
       throw mapAuthHttpError(response.status, `Registration failed: ${response.statusText}`, data?.detail);
     }
     return response.json();
-  } catch (err: any) {
+  } catch (err: unknown) {
     if (err instanceof TypeError) {
-      throw new Error(
-        `Cannot connect to server at ${API_BASE}. ` +
-        `Make sure the backend is running and the port is accessible from your browser. ` +
-        `If you're using Codespaces run \`python3 ../start-all.py\` or forward port 8000 in the Ports panel.`
-      );
+      throw toNetworkAuthError();
     }
     throw err;
   }
