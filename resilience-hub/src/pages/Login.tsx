@@ -45,7 +45,6 @@ export default function Login() {
   const envGoogleClientId = (import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined)?.trim();
   const [googleClientId, setGoogleClientId] = useState(envGoogleClientId || '');
   const [googleConfigLoading, setGoogleConfigLoading] = useState(!envGoogleClientId);
-  const showMockGoogleLogin = import.meta.env.DEV;
 
   useEffect(() => {
     let active = true;
@@ -172,25 +171,6 @@ export default function Login() {
       script.onerror = null;
     };
   }, [googleClientId, isRegister, login, missionRole, navigate]);
-
-  const handleMockGoogleLogin = async () => {
-    if (isRegister) return;
-    try {
-      setGoogleLoading(true);
-      setError('');
-      const res = await loginWithGoogle('mock_google_token_for_testing', missionRole);
-      login(res.access_token, {
-        email: res.user?.email,
-        name: res.user?.name,
-        missionRole: res.user?.mission_role || missionRole,
-      });
-      navigate('/dashboard');
-    } catch (err: unknown) {
-      setError(getErrorMessage(err, 'Mock Google sign-in failed'));
-    } finally {
-      setGoogleLoading(false);
-    }
-  };
 
   return (
     <div
@@ -339,30 +319,10 @@ export default function Login() {
                     <div className="flex justify-center">
                       <div ref={googleBtnRef} />
                     </div>
-                    {showMockGoogleLogin && (
-                      <button
-                        type="button"
-                        onClick={handleMockGoogleLogin}
-                        disabled={googleLoading}
-                        className="w-full py-2 bg-slate-800 border border-cyan-700/50 text-cyan-300 font-mono font-bold rounded uppercase text-[11px] tracking-wider transition hover:bg-cyan-900/30 disabled:opacity-50"
-                      >
-                        Use Local Mock Google Login
-                      </button>
-                    )}
                   </div>
                 ) : (
-                  <div className="flex flex-col gap-3">
-                    <div className="w-full rounded border border-amber-500/50 bg-amber-950/30 px-3 py-2 text-xs font-mono text-amber-300">
-                      Google sign-in setup missing. Add <code>GOOGLE_CLIENT_ID</code> in <code>backend/.env</code> or <code>VITE_GOOGLE_CLIENT_ID</code> in <code>resilience-hub/.env</code>, then restart the servers.
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleMockGoogleLogin}
-                      disabled={googleLoading}
-                      className="w-full py-2 bg-slate-800 border-2 border-amber-500/50 text-amber-400 font-mono font-bold rounded uppercase text-xs tracking-wider transition hover:bg-amber-900/40 disabled:opacity-50"
-                    >
-                      Bypass / Mock Google Login
-                    </button>
+                  <div className="w-full rounded border border-amber-500/50 bg-amber-950/30 px-3 py-2 text-xs font-mono text-amber-300">
+                    Google sign-in setup missing. Add <code>GOOGLE_CLIENT_ID</code> in <code>backend/.env</code> or <code>VITE_GOOGLE_CLIENT_ID</code> in <code>resilience-hub/.env</code>, then restart the servers.
                   </div>
                 )}
                 {googleLoading && (
