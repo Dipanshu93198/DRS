@@ -29,24 +29,4 @@ export default defineConfig(() => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  build: {
-    rollupOptions: {
-      output: {
-        manualChunks(id) {
-          if (!id.includes("node_modules")) return;
-          if (id.includes("three")) return "vendor-three";
-          if (id.includes("leaflet") || id.includes("react-leaflet")) return "vendor-maps";
-          if (id.includes("recharts") || id.includes("d3-")) return "vendor-charts";
-          if (
-            id.includes("react-router") ||
-            id.includes("@tanstack/react-query") ||
-            id.includes("react-dom") ||
-            id.includes("/react/")
-          ) {
-            return "vendor-react";
-          }
-        },
-      },
-    },
-  },
 }));
