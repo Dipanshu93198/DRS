@@ -1,4 +1,5 @@
 from datetime import datetime
+import os
 from pathlib import Path
 import shutil
 import uuid
@@ -14,7 +15,12 @@ except ImportError:
 
 
 router = APIRouter(prefix="/public", tags=["public"])
-UPLOAD_DIR = Path(__file__).resolve().parents[2] / "uploads" / "citizen_updates"
+DEFAULT_UPLOADS_ROOT = (
+    "/tmp/uploads"
+    if os.getenv("VERCEL")
+    else (Path(__file__).resolve().parents[2] / "uploads").as_posix()
+)
+UPLOAD_DIR = Path(os.getenv("UPLOADS_DIR", DEFAULT_UPLOADS_ROOT)) / "citizen_updates"
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 

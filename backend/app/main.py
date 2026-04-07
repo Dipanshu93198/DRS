@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -40,7 +41,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -59,7 +60,8 @@ app.include_router(operations.router)
 app.include_router(public.router)
 app.include_router(gov_feeds.router)
 app.include_router(sms_alerts.router)
-uploads_dir = Path(__file__).resolve().parents[1] / "uploads"
+default_uploads_dir = "/tmp/uploads" if os.getenv("VERCEL") else (Path(__file__).resolve().parents[1] / "uploads").as_posix()
+uploads_dir = Path(os.getenv("UPLOADS_DIR", default_uploads_dir))
 uploads_dir.mkdir(parents=True, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=uploads_dir), name="uploads")
 

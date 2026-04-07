@@ -1,9 +1,17 @@
 import os
+from pathlib import Path
 from pydantic_settings import BaseSettings
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
 load_dotenv()
+
+DEFAULT_SQLITE_PATH = (
+    "/tmp/resilience_hub.db"
+    if os.getenv("VERCEL")
+    else (Path(__file__).resolve().parents[1] / "resilience_hub.db").as_posix()
+)
+DEFAULT_SQLITE_URL = f"sqlite:///{DEFAULT_SQLITE_PATH}"
 
 
 def _env(primary: str, default: str = "", *aliases: str) -> str:
@@ -21,8 +29,8 @@ class Settings(BaseSettings):
     
     # Database Configuration
     use_postgres: bool = _env("use_postgres", "false", "USE_POSTGRES").lower() == "true"
-    database_url: str = _env("database_url", "sqlite:///./resilience_hub.db", "DATABASE_URL")
-    sqlalchemy_database_url: str = _env("sqlalchemy_database_url", "sqlite:///./resilience_hub.db", "SQLALCHEMY_DATABASE_URL")
+    database_url: str = _env("database_url", DEFAULT_SQLITE_URL, "DATABASE_URL")
+    sqlalchemy_database_url: str = _env("sqlalchemy_database_url", DEFAULT_SQLITE_URL, "SQLALCHEMY_DATABASE_URL")
     
     # API Configuration
     api_title: str = "Disaster Response and Coordination System"
