@@ -8,13 +8,27 @@ from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 from app import services
 from app.models import SOSReport, CrowdAssistance, AlertBroadcast, SOSStatus, EmergencyType
-from app.database import SessionLocal
+from app.database import Base, SessionLocal, engine
 
 
 @pytest.fixture
 def db():
     """Get test database session"""
-    return SessionLocal()
+    Base.metadata.drop_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
+    db = SessionLocal()
+    db.query(AlertBroadcast).delete()
+    db.query(CrowdAssistance).delete()
+    db.query(SOSReport).delete()
+    db.commit()
+    try:
+        yield db
+    finally:
+        db.query(AlertBroadcast).delete()
+        db.query(CrowdAssistance).delete()
+        db.query(SOSReport).delete()
+        db.commit()
+        db.close()
 
 
 class TestSOSReportCreation:

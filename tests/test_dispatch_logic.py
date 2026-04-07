@@ -14,14 +14,13 @@ class TestDistanceCalculation:
     
     def test_known_distance(self):
         """Test with known distance"""
-        # Delhi to Mumbai distance is approximately 1380 km
+        # Delhi to Mumbai great-circle distance is approximately 1150 km
         delhi_lat, delhi_lon = 28.7041, 77.1025
         mumbai_lat, mumbai_lon = 19.0760, 72.8777
         
         distance = haversine_distance(delhi_lat, delhi_lon, mumbai_lat, mumbai_lon)
         
-        # Should be approximately 1380 km
-        assert 1300 < distance < 1450
+        assert 1100 < distance < 1200
     
     def test_symmetry(self):
         """Distance should be symmetric"""
@@ -42,10 +41,10 @@ class TestDistanceCalculation:
     def test_nearby_coordinates(self):
         """Test small distance calculation"""
         lat1, lon1 = 28.7041, 77.1025
-        lat2, lon2 = 28.7050, 77.1030  # About 1 km away
+        lat2, lon2 = 28.7050, 77.1030  # About 110 meters away
         
         distance = haversine_distance(lat1, lon1, lat2, lon2)
-        assert 0.5 < distance < 2  # Should be roughly 1 km
+        assert 0.05 < distance < 0.2
 
 
 class TestArrivalTimeEstimation:

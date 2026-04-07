@@ -328,6 +328,7 @@ class SOSReportResponse(BaseModel):
     id: int
     reporter_name: str
     reporter_phone: str
+    reporter_email: Optional[str] = None
     latitude: float
     longitude: float
     emergency_type: EmergencyType
@@ -340,6 +341,7 @@ class SOSReportResponse(BaseModel):
     is_urgent: bool
     nearest_resource_id: Optional[int] = None
     distance_to_nearest_resource_km: Optional[float] = None
+    metadata: Optional[Dict[str, Any]] = None
     crowd_assistance_enabled: bool
     reported_at: datetime
     acknowledged_at: Optional[datetime] = None
@@ -448,6 +450,9 @@ class SOSAnalytics(BaseModel):
     total_resolved_today: int
     average_response_time_minutes: float
     most_common_emergency_type: str
+    urgent_cases: int
+    crowd_assistance_available: int
+    nearby_resources_count: int
 
 
 # Geospatial Infrastructure Schemas
@@ -627,9 +632,6 @@ class OperationalLogResponse(BaseModel):
 
     class Config:
         from_attributes = True
-    urgent_cases: int
-    crowd_assistance_available: int
-    nearby_resources_count: int
 
 
 class IncidentAssignmentUpsert(BaseModel):

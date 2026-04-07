@@ -3,15 +3,33 @@ SOS Service - Citizen emergency reporting and alert broadcasting
 Phase 5: Citizen SOS + Real-Time Alerts
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import List, Dict, Optional, Tuple
-from math import radians, cos, sin, asin, sqrt
 from sqlalchemy.orm import Session
 from app.models import (
     SOSReport, CrowdAssistance, AlertBroadcast, Resource,
-    SOSStatus, ResourceStatus, EmergencyType
+    SOSStatus, ResourceStatus
 )
 from app.services.dispatch import haversine_distance
+
+
+ACTIVE_SOS_STATUSES = (
+    SOSStatus.PENDING,
+    SOSStatus.ACKNOWLEDGED,
+    SOSStatus.IN_PROGRESS,
+)
+
+
+def _normalize_sos_status(status: str | SOSStatus) -> SOSStatus:
+    if isinstance(status, SOSStatus):
+        return status
+    return SOSStatus(str(status).strip().lower())
+
+
+def _attach_metadata_alias(report: SOSReport) -> SOSReport:
+    # Backward-compatible attribute used in older tests and serializers.
+    report.metadata = report.incident_metadata or {}
+    return report
 
 
 def create_sos_report(
@@ -28,6 +46,7 @@ def create_sos_report(
     requires_evacuation: int = 0,
     is_urgent: bool = False,
     metadata: Optional[Dict] = None,
+    incident_metadata: Optional[Dict] = None,
     crowd_assistance_enabled: bool = True,
     reporter_email: Optional[str] = None,
 ) -> SOSReport:
@@ -54,6 +73,8 @@ def create_sos_report(
     Returns:
         SOSReport: Created report
     """
+    resolved_metadata = metadata if metadata is not None else incident_metadata
+
     sos_report = SOSReport(
         reporter_name=reporter_name,
         reporter_phone=reporter_phone,
@@ -67,19 +88,19 @@ def create_sos_report(
         has_injuries=has_injuries,
         requires_evacuation=requires_evacuation,
         is_urgent=1 if is_urgent else 0,
-        metadata=metadata or {},
+        incident_metadata=resolved_metadata or {},
         crowd_assistance_enabled=1 if crowd_assistance_enabled else 0,
         status=SOSStatus.PENDING,
     )
     
-    # Set PostGIS point
-    sos_report.geom = f"POINT({longitude} {latitude})"
+    if getattr(SOSReport, "geom", None) is not None:
+        sos_report.geom = f"POINT({longitude} {latitude})"
     
     db.add(sos_report)
     db.commit()
     db.refresh(sos_report)
     
-    return sos_report
+    return _attach_metadata_alias(sos_report)
 
 
 def update_sos_report(
@@ -95,23 +116,24 @@ def update_sos_report(
         return None
     
     if status:
-        sos.status = status
-        if status == "acknowledged":
+        normalized_status = _normalize_sos_status(status)
+        sos.status = normalized_status
+        if normalized_status == SOSStatus.ACKNOWLEDGED:
             sos.acknowledged_at = datetime.utcnow()
-        elif status == "resolved":
+        elif normalized_status == SOSStatus.RESOLVED:
             sos.resolved_at = datetime.utcnow()
     
     if describe:
         sos.description = describe
     
-    if nearest_resource_id:
+    if nearest_resource_id is not None:
         sos.nearest_resource_id = nearest_resource_id
     
     sos.updated_at = datetime.utcnow()
     db.commit()
     db.refresh(sos)
     
-    return sos
+    return _attach_metadata_alias(sos)
 
 
 def acknowledge_sos(db: Session, sos_id: int) -> Optional[SOSReport]:
@@ -141,13 +163,13 @@ def find_nearby_sos_reports(
     # Get all SOS reports with specified status
     query = db.query(SOSReport)
     
-    if status_filter and status_filter != "all":
-        query = query.filter(SOSReport.status == status_filter)
+    normalized_filter = (status_filter or "").strip().lower()
+
+    if normalized_filter and normalized_filter not in {"all", "active"}:
+        query = query.filter(SOSReport.status == _normalize_sos_status(normalized_filter))
     else:
         # Exclude resolved/cancelled by default
-        query = query.filter(
-            SOSReport.status.in_([SOSStatus.PENDING, SOSStatus.ACKNOWLEDGED, SOSStatus.IN_PROGRESS])
-        )
+        query = query.filter(SOSReport.status.in_(ACTIVE_SOS_STATUSES))
     
     reports = query.all()
     
@@ -215,7 +237,7 @@ def cluster_sos_reports(
     """
     # Get all active SOS reports
     active_reports = db.query(SOSReport).filter(
-        SOSReport.status.in_([SOSStatus.PENDING, SOSStatus.ACKNOWLEDGED, SOSStatus.IN_PROGRESS])
+        SOSReport.status.in_(ACTIVE_SOS_STATUSES)
     ).all()
     
     clusters = []
@@ -308,7 +330,7 @@ def offer_crowd_assistance(
     )
     
     # Estimate arrival time (assume 40 km/h average speed for civilians)
-    estimated_arrival = int(distance / 40 * 60) if distance > 0 else 5
+    estimated_arrival = max(1, int(distance / 40 * 60)) if distance > 0 else 5
     
     assistance = CrowdAssistance(
         sos_report_id=sos_report_id,
@@ -452,7 +474,7 @@ def get_sos_analytics(db: Session) -> Dict:
     """
     # Active SOS count
     active_sos = db.query(SOSReport).filter(
-        SOSReport.status.in_([SOSStatus.PENDING, SOSStatus.ACKNOWLEDGED, SOSStatus.IN_PROGRESS])
+        SOSReport.status.in_(ACTIVE_SOS_STATUSES)
     ).count()
     
     # Resolved today
@@ -483,7 +505,7 @@ def get_sos_analytics(db: Session) -> Dict:
     # Urgent cases
     urgent_count = db.query(SOSReport).filter(
         SOSReport.is_urgent == 1,
-        SOSReport.status.in_([SOSStatus.PENDING, SOSStatus.ACKNOWLEDGED, SOSStatus.IN_PROGRESS])
+        SOSReport.status.in_(ACTIVE_SOS_STATUSES)
     ).count()
     
     # Crowd assistance available
@@ -493,7 +515,7 @@ def get_sos_analytics(db: Session) -> Dict:
     
     # Nearby resources (within 10km of any active SOS)
     active_sos_list = db.query(SOSReport).filter(
-        SOSReport.status.in_([SOSStatus.PENDING, SOSStatus.ACKNOWLEDGED, SOSStatus.IN_PROGRESS])
+        SOSReport.status.in_(ACTIVE_SOS_STATUSES)
     ).all()
     
     nearby_resources_count = 0
@@ -514,14 +536,16 @@ def get_sos_analytics(db: Session) -> Dict:
 
 def get_sos_report(db: Session, sos_id: int) -> Optional[SOSReport]:
     """Get a specific SOS report"""
-    return db.query(SOSReport).filter(SOSReport.id == sos_id).first()
+    report = db.query(SOSReport).filter(SOSReport.id == sos_id).first()
+    return _attach_metadata_alias(report) if report else None
 
 
 def get_all_active_sos(db: Session, limit: int = 50) -> List[SOSReport]:
     """Get all active SOS reports"""
-    return db.query(SOSReport).filter(
-        SOSReport.status.in_([SOSStatus.PENDING, SOSStatus.ACKNOWLEDGED, SOSStatus.IN_PROGRESS])
+    reports = db.query(SOSReport).filter(
+        SOSReport.status.in_(ACTIVE_SOS_STATUSES)
     ).order_by(SOSReport.reported_at.desc()).limit(limit).all()
+    return [_attach_metadata_alias(report) for report in reports]
 
 
 def search_sos_by_type(
@@ -534,7 +558,7 @@ def search_sos_by_type(
     
     if active_only:
         query = query.filter(
-            SOSReport.status.in_([SOSStatus.PENDING, SOSStatus.ACKNOWLEDGED, SOSStatus.IN_PROGRESS])
+            SOSReport.status.in_(ACTIVE_SOS_STATUSES)
         )
     
-    return query.all()
+    return [_attach_metadata_alias(report) for report in query.all()]

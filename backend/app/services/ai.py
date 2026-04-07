@@ -21,9 +21,10 @@ class PromptTemplate:
         """Generate prompt for disaster explanation"""
         location_desc = f"({latitude:.4f}, {longitude:.4f})"
         severity_desc = get_severity_description(severity_score)
+        operational_severity = get_operational_severity_label(severity_score)
         
         prompt = f"""As an emergency response AI, explain the current {disaster_type} 
-        at location {location_desc} with severity level {severity_desc} ({severity_score}/100).
+        at location {location_desc} with severity level {operational_severity} ({severity_desc}, {severity_score}/100).
         
         Provide:
         1. Immediate impacts and hazards
@@ -91,11 +92,12 @@ Be tactical and specific."""
         4. When to evacuate
         5. How to call for help
         6. Essential supplies to bring
+        7. How to protect vulnerable populations
         
         Format as numbered, concise, actionable steps."""
         
         if has_vulnerable_populations:
-            prompt += "\n\nSpecial considerations for elderly, disabled, and children."
+            prompt += "\n\nHighlight vulnerable population support for elderly, disabled, and children."
         
         return prompt
     
@@ -115,8 +117,8 @@ Be tactical and specific."""
         prompt = f"""Analyze this emergency situation:
         - Disaster: {disaster_type}
         - Severity: {severity_desc} ({severity_score}/100)
-        - Affected population: {affected_population:,}
-        - Affected area: {affected_area_km2} km²
+        - Affected population: {affected_population}
+        - Affected area: {affected_area_km2} sq km
         - Available resources: {available_resources}
         - Time since onset: {time_since_onset}
         
@@ -142,6 +144,19 @@ def get_severity_description(score: float) -> str:
         return "MINOR"
     else:
         return "MINIMAL"
+
+
+def get_operational_severity_label(score: float) -> str:
+    """Operational wording used in natural-language prompts."""
+    if score >= 90:
+        return "CRITICAL"
+    if score >= 75:
+        return "HIGH"
+    if score >= 50:
+        return "ELEVATED"
+    if score >= 25:
+        return "GUARDED"
+    return "LOW"
 
 
 async def generate_ai_response(
