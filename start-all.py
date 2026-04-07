@@ -27,6 +27,7 @@ def main():
     project_root = Path(__file__).parent
     backend_dir = project_root / "backend"
     frontend_dir = project_root / "resilience-hub"
+    frontend_port = 8080
     
     print("=" * 70)
     print("  DRS - COMPLETE STARTUP SCRIPT")
@@ -126,15 +127,15 @@ def main():
     
     # Set environment variable for API base
     frontend_env = os.environ.copy()
-    frontend_env["VITE_API_BASE"] = backend_url
+    frontend_env["VITE_API_BASE"] = "/api"
     
     print(f"Frontend will connect to backend at: {backend_url}")
-    print("Starting dev server on port 5173...")
+    print(f"Starting dev server on port {frontend_port}...")
     print()
     
     try:
-        if is_port_open("127.0.0.1", 5173):
-            print("Frontend already running on port 5173. Reusing existing process.")
+        if is_port_open("127.0.0.1", frontend_port):
+            print(f"Frontend already running on port {frontend_port}. Reusing existing process.")
         else:
             subprocess.run(
                 [npm_cmd, "run", "dev"],
