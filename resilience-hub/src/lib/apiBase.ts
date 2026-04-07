@@ -12,7 +12,11 @@ export function getApiBase(): string {
 export function getWsBase(): string {
   const apiBase = getApiBase();
   if (apiBase.startsWith('/')) {
-    return apiBase;
+    if (typeof window === 'undefined') {
+      return apiBase;
+    }
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    return `${protocol}//${window.location.host}${apiBase}`;
   }
   if (apiBase.startsWith('https://')) {
     return `wss://${apiBase.slice('https://'.length)}`;

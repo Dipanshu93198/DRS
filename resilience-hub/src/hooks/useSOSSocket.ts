@@ -1,7 +1,7 @@
-"""
+/*
 useSOSSocket Hook - Real-time SOS alerts via WebSocket
 Phase 5: Citizen SOS + Real-Time Alerts
-"""
+*/
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { getWsBase } from '@/lib/apiBase';
@@ -52,7 +52,7 @@ export const useSOSSocket = (options: UseSOSSocketOptions = {}) => {
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const webSocketRef = useRef<WebSocket | null>(null);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const subscriptionsRef = useRef<Set<string>>(new Set());
 
   const connect = useCallback(() => {
@@ -73,12 +73,27 @@ export const useSOSSocket = (options: UseSOSSocketOptions = {}) => {
 
         // Re-subscribe to any previous subscriptions
         subscriptionsRef.current.forEach((subscription) => {
-          ws.send(
-            JSON.stringify({
-              action: 'subscribe',
-              channel: subscription,
-            })
-          );
+          const [kind, ...parts] = subscription.split(':');
+          if (kind === 'location' && parts.length === 3) {
+            ws.send(
+              JSON.stringify({
+                type: 'subscribe_location',
+                latitude: Number(parts[0]),
+                longitude: Number(parts[1]),
+                radius_km: Number(parts[2]),
+              })
+            );
+            return;
+          }
+
+          if (kind === 'sos' && parts.length === 1) {
+            ws.send(
+              JSON.stringify({
+                type: 'subscribe_sos',
+                sos_id: Number(parts[0]),
+              })
+            );
+          }
         });
       };
 
@@ -87,13 +102,13 @@ export const useSOSSocket = (options: UseSOSSocketOptions = {}) => {
           const data = JSON.parse(event.data);
 
           // Handle different message types
-          if (data.type === 'alert') {
+          if (data.type === 'sos_alert') {
             const alert: SOSAlert = {
-              id: data.id,
-              sos_report_id: data.sos_report_id,
+              id: data.id ?? Date.now(),
+              sos_report_id: data.sos_id ?? data.sos_report_id,
               alert_type: data.alert_type,
-              message: data.message,
-              broadcast_scope: data.broadcast_scope,
+              message: data.message ?? 'SOS alert received',
+              broadcast_scope: data.broadcast_scope ?? 'immediate',
               latitude: data.latitude,
               longitude: data.longitude,
               timestamp: data.timestamp || new Date().toISOString(),
@@ -164,12 +179,27 @@ export const useSOSSocket = (options: UseSOSSocketOptions = {}) => {
       subscriptionsRef.current.add(channel);
 
       if (webSocketRef.current && isConnected) {
-        webSocketRef.current.send(
-          JSON.stringify({
-            action: 'subscribe',
-            channel,
-          })
-        );
+        const [kind, ...parts] = channel.split(':');
+        if (kind === 'location' && parts.length === 3) {
+          webSocketRef.current.send(
+            JSON.stringify({
+              type: 'subscribe_location',
+              latitude: Number(parts[0]),
+              longitude: Number(parts[1]),
+              radius_km: Number(parts[2]),
+            })
+          );
+          return;
+        }
+
+        if (kind === 'sos' && parts.length === 1) {
+          webSocketRef.current.send(
+            JSON.stringify({
+              type: 'subscribe_sos',
+              sos_id: Number(parts[0]),
+            })
+          );
+        }
       }
     },
     [isConnected]
@@ -182,7 +212,7 @@ export const useSOSSocket = (options: UseSOSSocketOptions = {}) => {
       if (webSocketRef.current && isConnected) {
         webSocketRef.current.send(
           JSON.stringify({
-            action: 'unsubscribe',
+            type: 'unsubscribe',
             channel,
           })
         );
@@ -244,7 +274,7 @@ export const useNearbySOSAlerts = (
   useEffect(() => {
     if (isConnected && enabled) {
       // Subscribe to nearby location channel
-      const channel = `location_${latitude.toFixed(2)}_${longitude.toFixed(2)}_${radiusKm}km`;
+      const channel = `location:${latitude}:${longitude}:${radiusKm}`;
       subscribe(channel);
 
       return () => {

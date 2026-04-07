@@ -6,6 +6,7 @@ import {
   BufferAttribute,
   BufferGeometry,
   Clock,
+  CylinderGeometry,
   DirectionalLight,
   DoubleSide,
   Group,
@@ -208,15 +209,14 @@ export default function HolographicEarth({ incidents, zooming = false }: Props) 
     );
     scene.add(storm);
 
-    const highlighted = incidents.slice(0, 12);
     const incidentGroup = new Group();
     const shockwaves: Mesh[] = [];
     const points: Mesh[] = [];
 
-    highlighted.forEach((incident, index) => {
+    incidents.forEach((incident, index) => {
       const position = latLngToVector(incident.lat, incident.lng, 2.42);
       const point = new Mesh(
-        new SphereGeometry(incident.severity === "critical" ? 0.07 : 0.05, 16, 16),
+        new SphereGeometry(incident.severity === "critical" ? 0.05 : 0.03, 16, 16),
         new MeshBasicMaterial({
           color: severityColor[incident.severity],
           transparent: true,
@@ -227,15 +227,28 @@ export default function HolographicEarth({ incidents, zooming = false }: Props) 
       incidentGroup.add(point);
       points.push(point);
 
-      const shockwave = new Mesh(
-        new RingGeometry(0.04, 0.08, 32),
+      const spikeHeight = incident.severity === "critical" ? 0.4 : (incident.severity === "high" ? 0.25 : 0.15);
+      const spikeObj = new Mesh(
+        new CylinderGeometry(0.005, 0.005, spikeHeight, 8),
         new MeshBasicMaterial({
-        color: severityColor[incident.severity],
-        transparent: true,
-        opacity: 0.45,
-        side: DoubleSide,
-      }),
-    );
+          color: severityColor[incident.severity],
+          transparent: true,
+          opacity: 0.7,
+        })
+      );
+      spikeObj.position.copy(position.clone().multiplyScalar(1 + spikeHeight / 2 / 2.42));
+      spikeObj.quaternion.setFromUnitVectors(new Vector3(0, 1, 0), position.clone().normalize());
+      incidentGroup.add(spikeObj);
+
+      const shockwave = new Mesh(
+        new RingGeometry(0.02, 0.06, 32),
+        new MeshBasicMaterial({
+          color: severityColor[incident.severity],
+          transparent: true,
+          opacity: 0.45,
+          side: DoubleSide,
+        }),
+      );
       shockwave.position.copy(position.clone().multiplyScalar(1.005));
       shockwave.quaternion.setFromUnitVectors(new Vector3(0, 0, 1), position.clone().normalize());
       shockwave.userData.phase = index * 0.35;
@@ -245,10 +258,10 @@ export default function HolographicEarth({ incidents, zooming = false }: Props) 
     globeGroup.add(incidentGroup);
 
     const satelliteGroup = new Group();
-    const linkPairs = highlighted.slice(0, 6);
+    const linkPairs = incidents.slice(0, 15);
     linkPairs.forEach((incident, index) => {
       const start = latLngToVector(incident.lat, incident.lng, 2.42);
-      const endIncident = highlighted[(index + 3) % highlighted.length];
+      const endIncident = incidents[(index + 3) % incidents.length];
       if (!endIncident) return;
       const end = latLngToVector(endIncident.lat, endIncident.lng, 2.42);
       const mid = start.clone().add(end).multiplyScalar(0.5).normalize().multiplyScalar(3.55);
